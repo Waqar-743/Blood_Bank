@@ -360,6 +360,22 @@ tailwind.config = {
     </div>
   </header>
 
+  <!-- API offline banner -->
+  <div id="api-status-banner" style="display:none;background:rgba(217,119,6,0.08);border-color:rgba(245,158,11,0.2)"
+       class="flex items-center gap-3 px-6 py-2.5 border-b">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" style="flex-shrink:0">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span class="mono text-[11px]" style="color:#F59E0B">
+      API server offline — blood groups shown from standard list. Start the backend for full functionality.
+    </span>
+    <button onclick="retryApi()"
+            class="ml-auto mono text-[11px] underline underline-offset-2 hover:no-underline"
+            style="color:#F59E0B;background:none;border:none;cursor:pointer">
+      Retry
+    </button>
+  </div>
+
   <!-- Page content -->
   <main class="flex-1 overflow-y-auto p-6">
 
@@ -913,15 +929,43 @@ function goto(page) {
 }
 
 // ── Reference data ─────────────────────────────────────────
+// Standard fallback when API is unreachable — IDs match the seeded database order
+const STATIC_BLOOD_GROUPS = [
+  {blood_group_id:1,group_name:'A+'},  {blood_group_id:2,group_name:'A-'},
+  {blood_group_id:3,group_name:'B+'},  {blood_group_id:4,group_name:'B-'},
+  {blood_group_id:5,group_name:'O+'},  {blood_group_id:6,group_name:'O-'},
+  {blood_group_id:7,group_name:'AB+'}, {blood_group_id:8,group_name:'AB-'},
+];
+
+function setApiBanner(online) {
+  const banner = document.getElementById('api-status-banner');
+  if (banner) banner.style.display = online ? 'none' : 'flex';
+}
+
+async function retryApi() {
+  await loadRefData();
+  loadDashboard();
+}
+
 async function loadRefData() {
-  const [bgRes, bankRes, hospRes] = await Promise.all([
-    fetch(`${API}/blood-groups`),
-    fetch(`${API}/blood-banks`),
-    fetch(`${API}/hospitals`),
-  ]);
-  bloodGroups = (await bgRes.json()).data;
-  banks       = (await bankRes.json()).data;
-  hospitals   = (await hospRes.json()).data;
+  try {
+    const [bgRes, bankRes, hospRes] = await Promise.all([
+      fetch(`${API}/blood-groups`),
+      fetch(`${API}/blood-banks`),
+      fetch(`${API}/hospitals`),
+    ]);
+    if (!bgRes.ok || !bankRes.ok || !hospRes.ok) throw new Error('non-ok response');
+    bloodGroups = (await bgRes.json()).data;
+    banks       = (await bankRes.json()).data;
+    hospitals   = (await hospRes.json()).data;
+    setApiBanner(true);
+  } catch (err) {
+    console.warn('API unavailable — using offline fallback:', err.message);
+    bloodGroups = STATIC_BLOOD_GROUPS;
+    banks       = [];
+    hospitals   = [];
+    setApiBanner(false);
+  }
 
   // Populate selects
   const bgOpts = bloodGroups.map(g => `<option value="${g.blood_group_id}">${g.group_name}</option>`).join('');
