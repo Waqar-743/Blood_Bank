@@ -1,0 +1,105 @@
+name: CI-CD
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-smoke:
+    name: Backend smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Start API and run smoke checks
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --experimental-sqlite backend/server.js > server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+
+          for i in {1..30}; do
+            if curl -fsS "http://127.0.0.1:3000/api/blood-groups" > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          curl -fsS "http://127.0.0.1:3000/api/stats" > stats.json
+          curl -fsS "http://127.0.0.1:3000/api/blood-groups" > blood-groups.json
+
+          node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('stats.json','utf8')); if(!d.success || !d.data || typeof d.data.totalDonors !== 'number'){process.exit(1)}"
+          node -e "const fs=require('fs'); const d=JSON.parse(fs.readFileSync('blood-groups.json','utf8')); if(!d.success || !Array.isArray(d.data)){process.exit(1)}"
+
+  deploy-pages:
+    name: Deploy live site
+    if: github.event_name == 'push'
+    needs: backend-smoke
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare static site artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+          cp "Landing Page.html" dist/"Landing Page.html"
+          cp "Landing Page.html" dist/index.html
+          cp -R image dist/image
+          cp -R frontend dist/frontend
+          touch dist/.nojekyll
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
