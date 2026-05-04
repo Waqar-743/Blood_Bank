@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin Portal — Nutech Blood Bank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        cream:   { 50:'#FDFBF7', 100:'#F8F4EC', 200:'#EFE8DA' },
+        ink:     { 950:'#0E0B08', 900:'#1A1612', 800:'#2A2521', 700:'#3D3833' },
+        sand:    { 400:'#8C857B', 500:'#6F6A62' },
+        crimson: { 400:'#C8323A', 500:'#A41E26', 600:'#8B1820', 700:'#6B1118' },
+      },
+      fontFamily: {
+        serif:['"Fraunces"','serif'],
+        sans:['"Geist"','sans-serif'],
+        mono:['"Geist Mono"','monospace'],
+      }
+    }
+  }
+}
+</script>
+<style>
+  :root { --ease: cubic-bezier(0.32, 0.72, 0, 1); }
+  html,body{height:100%;margin:0}
+  body{
+    background:#FDFBF7;
+    font-family:'Geist',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    color:#0E0B08;
+  }
+  .serif { font-family:'Fraunces',serif; font-variation-settings: "opsz" 144, "SOFT" 50; letter-spacing:-0.025em; }
+  .serif-italic { font-family:'Instrument Serif',serif; font-style:italic; }
+  .mono { font-family:'Geist Mono',monospace; }
+
+  /* Background */
+  .bg-mesh {
+    position:fixed;inset:0;pointer-events:none;
+    background:
+      radial-gradient(700px 500px at 18% 30%, rgba(164,30,38,0.10), transparent 60%),
+      radial-gradient(600px 400px at 85% 75%, rgba(107,142,118,0.10), transparent 60%);
+  }
+  .grain-fx {
+    position:fixed;inset:0;pointer-events:none;opacity:.04;mix-blend-mode:multiply;z-index:1;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0.05 0 0 0 0 0.04 0 0 0 0 0.03 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* Double-bezel card */
+  .bezel {
+    background: rgba(14,11,8,0.04);
+    border:1px solid rgba(14,11,8,0.06);
+    padding:6px;border-radius:2rem;
+    box-shadow: 0 30px 80px -40px rgba(14,11,8,0.18);
+  }
+  .bezel-inner {
+    background:#FDFBF7;
+    border-radius:calc(2rem - 0.375rem);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+
+  /* Inputs */
+  .input-shell {
+    background: rgba(14,11,8,0.03);
+    border:1px solid rgba(14,11,8,0.08);
+    padding:5px;border-radius:14px;
+    transition: border-color .5s var(--ease), background-color .5s var(--ease);
+  }
+  .input-shell:focus-within { border-color: rgba(164,30,38,0.45); background:rgba(164,30,38,0.04); }
+  .input {
+    background:#FDFBF7;
+    border:none;border-radius:10px;
+    padding:11px 14px;
+    font-size:14px;font-family:'Geist',sans-serif;color:#0E0B08;
+    width:100%;outline:none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  .input::placeholder{color:#8C857B}
+
+  /* Pill button */
+  .pill {
+    display:inline-flex;align-items:center;justify-content:space-between;
+    gap:.5rem; padding: 0.6rem 0.6rem 0.6rem 1.4rem;
+    border-radius:9999px; font-weight:500; font-size:14px;
+    transition: transform .5s var(--ease), background-color .5s var(--ease);
+    will-change:transform;width:100%;
+  }
+  .pill:active{transform:scale(0.98)}
+  .pill-knob{
+    width:2rem;height:2rem;border-radius:9999px;
+    display:inline-flex;align-items:center;justify-content:center;
+    transition: transform .5s var(--ease), background-color .5s var(--ease);
+  }
+  .pill-crimson{background:#A41E26;color:#FDFBF7;border:none;cursor:pointer}
+  .pill-crimson .pill-knob{background:rgba(0,0,0,0.18)}
+  .pill-crimson:hover{background:#6B1118}
+  .pill-crimson:hover .pill-knob{background:rgba(0,0,0,0.35);transform:translate(2px,-1px) scale(1.05)}
+  .pill-crimson:disabled{opacity:.6;cursor:wait}
+
+  /* Eyebrow */
+  .eyebrow {
+    display:inline-flex;align-items:center;gap:.5rem;
+    padding:4px 10px;border-radius:9999px;
+    font-family:'Geist Mono',monospace;font-size:10px;font-weight:500;
+    text-transform:uppercase;letter-spacing:0.2em;
+    background:rgba(164,30,38,0.10);color:#A41E26;
+    border:1px solid rgba(164,30,38,0.25);
+  }
+
+  /* Pulse */
+  @keyframes pulse-ring { 0% { box-shadow:0 0 0 0 rgba(164,30,38,.55); } 70% { box-shadow:0 0 0 14px rgba(164,30,38,0); } 100% { box-shadow:0 0 0 0 rgba(164,30,38,0); } }
+  .pulse-dot{width:7px;height:7px;border-radius:9999px;background:#A41E26;animation:pulse-ring 1.8s infinite}
+
+  @keyframes float-y { 0%,100% { transform:translateY(0) } 50% { transform:translateY(-6px) } }
+  .float-y { animation: float-y 7s ease-in-out infinite; }
+
+  @keyframes spin-slow { to { transform:rotate(360deg) } }
+  .spin-slow { animation: spin-slow 40s linear infinite; }
+
+  @keyframes heartbeat { 0%,28%,70%,100% { transform:scale(1) } 14% { transform:scale(1.08) } 20% { transform:scale(0.96) } 42% { transform:scale(1.04) } }
+  .heartbeat { animation: heartbeat 1.6s ease-in-out infinite; transform-origin:center; }
+
+  /* Reveal */
+  .reveal{opacity:0;transform:translateY(24px);filter:blur(6px);transition:opacity 1s var(--ease),transform 1s var(--ease),filter 1s var(--ease)}
+  .reveal.in{opacity:1;transform:none;filter:none}
+
+  label { display:block; font-family:'Geist Mono',monospace; font-size:10px; color:#6F6A62; margin-bottom:8px; font-weight:500; letter-spacing:.18em; text-transform:uppercase; }
+
+  .error-box {
+    background:rgba(164,30,38,0.08);
+    border:1px solid rgba(164,30,38,0.25);
+    border-radius:10px;
+    padding:11px 14px;
+    font-size:13px;
+    color:#A41E26;
+    display:none;
+  }
+
+  .ulink { position:relative }
+  .ulink::after { content:''; position:absolute; left:0; right:0; bottom:-2px; height:1px; background:currentColor; transform:scaleX(0); transform-origin:left center; transition:transform .5s var(--ease); }
+  .ulink:hover::after { transform: scaleX(1); }
+</style>
+</head>
+<body class="flex items-center justify-center min-h-screen relative overflow-hidden">
+
+<div class="bg-mesh"></div>
+<div class="grain-fx"></div>
+
+<!-- Decorative spinning ring -->
+<div class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true">
+  <svg width="780" height="780" viewBox="0 0 780 780" fill="none" class="spin-slow opacity-[0.06]">
+    <circle cx="390" cy="390" r="380" stroke="#A41E26" stroke-dasharray="2 12"/>
+    <circle cx="390" cy="390" r="320" stroke="#0E0B08" stroke-dasharray="1 8"/>
+  </svg>
+</div>
+
+<!-- Editorial bulletin top -->
+<div class="fixed top-6 inset-x-0 px-8 mono text-[10px] tracking-widest text-sand-500 hidden md:flex items-center gap-6 z-10">
+  <span class="flex items-center gap-2"><span class="pulse-dot"></span> SECURE CHANNEL</span>
+  <span class="opacity-30">/</span>
+  <span>NUTECH NATIONAL COORDINATION</span>
+  <span class="ml-auto">ADMIN · v4.2</span>
+</div>
+
+<!-- Card -->
+<div class="relative z-10 w-full max-w-md mx-4 reveal">
+
+  <!-- Logo -->
+  <div class="text-center mb-10 float-y">
+    <div class="inline-flex items-center justify-center w-24 h-24 mb-5 relative">
+      <img src="../assets/logo.png" alt="Nutech Blood Bank" class="w-full h-full object-contain heartbeat" style="filter: drop-shadow(0 6px 16px rgba(208,40,48,0.18));"/>
+    </div>
+    <div class="serif font-light text-ink-950 text-[40px] leading-[0.9] tracking-[-0.03em]">Nutech<span class="text-crimson-500">·</span>Blood</div>
+    <p class="mono text-[10px] tracking-[0.25em] text-sand-500 mt-3">ADMIN PORTAL</p>
+  </div>
+
+  <!-- Form card (double-bezel) -->
+  <div class="bezel">
+    <div class="bezel-inner p-8">
+      <div class="eyebrow mb-5">
+        <span class="w-1.5 h-1.5 rounded-full bg-crimson-500"></span> Sign In
+      </div>
+      <h2 class="serif font-light text-ink-950 text-[32px] leading-[1] tracking-[-0.025em]">Welcome <span class="serif-italic text-crimson-500">back.</span></h2>
+      <p class="text-sand-500 text-[13px] mt-3">Access the blood bank management system.</p>
+
+      <div id="error-msg" class="error-box mt-5">Invalid credentials. Try <span class="mono">admin / admin123</span></div>
+
+      <form onsubmit="handleLogin(event)" class="mt-7">
+        <div class="mb-5">
+          <label>Username</label>
+          <div class="input-shell">
+            <input class="input" id="username" type="text" placeholder="admin" autocomplete="username" value="admin"/>
+          </div>
+        </div>
+        <div class="mb-7">
+          <label>Password</label>
+          <div class="input-shell relative">
+            <input class="input pr-12" id="password" type="password" placeholder="••••••••" autocomplete="current-password" value="admin123"/>
+            <button type="button" onclick="togglePwd()" class="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full hover:bg-ink-950/5 flex items-center justify-center text-sand-500 hover:text-ink-950 transition-all duration-500" aria-label="Show password">
+              <svg id="eye-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="pill pill-crimson" id="login-btn">
+          <span>Sign in to Admin Panel</span>
+          <span class="pill-knob">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </span>
+        </button>
+      </form>
+
+      <div class="mt-7 pt-6 border-t border-ink-950/8 text-center">
+        <a href="../../Landing Page.html" class="ulink mono text-[10px] tracking-widest text-sand-500 hover:text-ink-950 transition-colors duration-500">← BACK TO PUBLIC SITE</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Demo creds -->
+  <div class="mt-6 text-center">
+    <p class="mono text-[10px] tracking-widest text-sand-500">DEMO · <span class="text-crimson-500">admin / admin123</span></p>
+  </div>
+</div>
+
+<script>
+function togglePwd() {
+  const input = document.getElementById('password');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function handleLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('error-msg');
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value;
+
+  btn.querySelector('span:first-child').textContent = 'Signing in…';
+  btn.disabled = true;
+
+  setTimeout(() => {
+    if ((u === 'admin' || u === 'admin@nutechblood.org') && p === 'admin123') {
+      sessionStorage.setItem('nb_admin', '1');
+      window.location.href = 'index.html';
+    } else {
+      err.style.display = 'block';
+      btn.querySelector('span:first-child').textContent = 'Sign in to Admin Panel';
+      btn.disabled = false;
+    }
+  }, 700);
+}
+
+// Reveal on load
+requestAnimationFrame(() => {
+  document.querySelectorAll('.reveal').forEach(el => el.classList.add('in'));
+});
+</script>
+</body>
+</html>

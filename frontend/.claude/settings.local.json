@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"D:\\\\dell\\\\Downloads\\\\Nutech_BloodBank\\\\backend\" /b /a-d)",
+      "Bash(node --experimental-sqlite server.js)",
+      "Bash(curl -s http://localhost:3000/api/stats)",
+      "Bash(curl -s http://localhost:3000/api/blood-groups)",
+      "Bash(curl -s \"http://localhost:3000/api/donors?active=\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Count:', len\\(d['data']\\)\\)\")",
+      "Bash(curl -s \"http://localhost:3000/api/donors?active=1\")",
+      "Bash(curl -s \"http://localhost:3000/api/patients/1\")",
+      "Bash(curl -s \"http://localhost:3000/api/requests\")",
+      "Bash(taskkill /f /im node.exe)",
+      "PowerShell(Get-Process *)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Success:', d['success'], '| Name:', d['data']['first_name'], d['data']['last_name']\\)\")",
+      "Bash(curl -s \"http://localhost:3000/api/stats\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Donors:', d['data']['totalDonors'], '| Units:', d['data']['totalUnits']\\)\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('Backend OK - Donors:', d['data']['totalDonors']\\)\")",
+      "PowerShell(Start-Process \"http://localhost:3000\")",
+      "Bash(curl -s -o /dev/null -w \"logo: %{http_code} %{size_download}b\\\\n\" http://localhost:3000/assets/logo.png)",
+      "Bash(curl -s -o /dev/null -w \"landing logo path: %{http_code} %{size_download}b\\\\n\" \"http://localhost:3000/frontend/assets/logo.png\")"
+    ]
+  }
+}

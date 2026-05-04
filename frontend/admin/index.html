@@ -1,0 +1,1430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin Dashboard — Nutech Blood Bank</title>
+<meta name="description" content="Nutech Blood Bank Admin Panel — real-time blood inventory, donor management, and request tracking."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        /* Crimson scale (kept as `cr` for back-compat) */
+        cr:  { 50:'#fef2f2', 400:'#C8323A', 500:'#A41E26', 600:'#8B1820', 700:'#6B1118' },
+        /* Warm ink scale (kept as `ink` for back-compat). 950 = page bg, 900 = panel, 850 = card, 800 = border accent */
+        ink: { 950:'#0E0B08', 900:'#15110D', 850:'#1A1612', 800:'#2A2521', 700:'#3D3833', 600:'#5A544D' },
+        /* Slate -> warm sand (kept as `sl` for back-compat) */
+        sl:  { 200:'#E2D8C2', 300:'#C4BBA8', 400:'#8C857B', 500:'#6F6A62' },
+        cream: { 50:'#FDFBF7', 100:'#F8F4EC', 200:'#EFE8DA' },
+      },
+      fontFamily: {
+        display:['"Fraunces"','serif'],
+        sans:['"Geist"','-apple-system','sans-serif'],
+        mono:['"Geist Mono"','monospace'],
+      }
+    }
+  }
+}
+</script>
+<style>
+  :root {
+    --cream:#FDFBF7; --cream-warm:#EFE8DA;
+    --ink:#0E0B08; --panel:#15110D; --card:#1A1612;
+    --crimson:#A41E26; --crimson-d:#6B1118; --crimson-l:#C8323A;
+    --sand-400:#8C857B; --sand-500:#6F6A62;
+    --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  html,body{
+    height:100%;
+    background:var(--ink);
+    color:var(--cream);
+    font-family:'Geist',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    font-feature-settings:"ss01","cv11";
+  }
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(253,251,247,0.10);border-radius:9999px}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(253,251,247,0.18)}
+
+  .display{font-family:'Fraunces',serif;font-variation-settings:"opsz" 144,"SOFT" 50;letter-spacing:-.025em;font-weight:300}
+  .mono{font-family:'Geist Mono',monospace}
+  .serif-italic{font-family:'Instrument Serif',serif;font-style:italic}
+
+  /* === SIDEBAR === */
+  .sidebar{
+    width:248px;flex-shrink:0;
+    background:var(--panel);
+    border-right:1px solid rgba(253,251,247,0.06);
+    height:100vh;overflow-y:auto;position:sticky;top:0;
+  }
+  .sidebar-link{
+    display:flex;align-items:center;gap:11px;
+    padding:10px 14px;border-radius:10px;
+    font-size:13px;color:#C4BBA8;
+    transition:background-color .5s var(--ease), color .5s var(--ease), transform .5s var(--ease);
+    cursor:pointer;margin:2px 10px;
+    will-change:transform;
+  }
+  .sidebar-link:hover{background:rgba(253,251,247,0.04);color:var(--cream);transform:translateX(2px);}
+  .sidebar-link.active{
+    background:linear-gradient(90deg, rgba(164,30,38,0.15), rgba(164,30,38,0.04));
+    color:var(--crimson-l);font-weight:500;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .sidebar-link.active svg{stroke:var(--crimson-l)}
+  .sidebar-link.active::before{
+    content:'';position:absolute;left:-10px;width:3px;height:60%;background:var(--crimson);border-radius:0 4px 4px 0;
+  }
+  .sidebar-link{position:relative}
+
+  /* === DOUBLE-BEZEL CARD === */
+  .card{
+    background:rgba(253,251,247,0.025);
+    border:1px solid rgba(253,251,247,0.07);
+    border-radius:1.25rem;
+    padding:6px;
+    transition:border-color .7s var(--ease), transform .7s var(--ease), box-shadow .7s var(--ease);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .card:hover{border-color:rgba(200,50,58,0.4);transform:translateY(-1px);box-shadow:0 24px 60px -36px rgba(164,30,38,0.4), inset 0 1px 0 rgba(255,255,255,0.05);}
+  /* Inner core uses padding via children — but cards in the page directly hold content, so add inner shell via p-* on children. We layer with pseudo: keep card as outer shell, content sits inside with own padding. */
+  .card > * { /* let inner content take radius */ }
+
+  /* === BADGES === */
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:4px 10px;border-radius:9999px;
+    font-size:10.5px;font-family:'Geist Mono',monospace;font-weight:500;
+    letter-spacing:0.08em;text-transform:uppercase;
+    border:1px solid currentColor;
+  }
+  .badge::before{content:'●';font-size:9px;opacity:.8}
+  .badge-critical{background:rgba(164,30,38,0.10);color:#C8323A;border-color:rgba(200,50,58,0.3)}
+  .badge-high{background:rgba(217,119,6,0.10);color:#F59E0B;border-color:rgba(245,158,11,0.3)}
+  .badge-medium{background:rgba(202,138,4,0.10);color:#EAB308;border-color:rgba(234,179,8,0.3)}
+  .badge-low{background:rgba(107,142,118,0.10);color:#8FB498;border-color:rgba(143,180,152,0.3)}
+  .badge-stable{background:rgba(107,142,118,0.10);color:#8FB498;border-color:rgba(143,180,152,0.3)}
+  .badge-pending{background:rgba(202,138,4,0.10);color:#EAB308;border-color:rgba(234,179,8,0.3)}
+  .badge-approved{background:rgba(96,165,250,0.10);color:#7AB8FF;border-color:rgba(122,184,255,0.3)}
+  .badge-fulfilled{background:rgba(107,142,118,0.10);color:#8FB498;border-color:rgba(143,180,152,0.3)}
+  .badge-completed{background:rgba(107,142,118,0.10);color:#8FB498;border-color:rgba(143,180,152,0.3)}
+  .badge-rejected{background:rgba(164,30,38,0.10);color:#C8323A;border-color:rgba(200,50,58,0.3)}
+
+  /* === STAT CARDS === */
+  .stat-card{
+    background:linear-gradient(135deg, var(--card), var(--panel));
+    border:1px solid rgba(253,251,247,0.07);
+    border-radius:1.25rem;
+    padding:24px 26px;position:relative;overflow:hidden;
+    transition: border-color .7s var(--ease), transform .7s var(--ease);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .stat-card:hover{border-color:rgba(200,50,58,0.35);transform:translateY(-2px)}
+  .stat-card::before{
+    content:'';position:absolute;top:-30px;right:-30px;
+    width:140px;height:140px;border-radius:50%;
+    opacity:.10;filter:blur(20px);
+  }
+  .stat-card.red::before{background:#A41E26}
+  .stat-card.amber::before{background:#D97706}
+  .stat-card.emerald::before{background:#6B8E76}
+  .stat-card.blue::before{background:#3B82F6}
+  .stat-card .display { font-family:'Fraunces',serif; font-weight:300; font-variation-settings:"opsz" 144; }
+
+  /* === TABLES === */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:14px;border:1px solid rgba(253,251,247,0.06);background:rgba(253,251,247,0.015)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  thead th{
+    padding:14px 16px;text-align:left;
+    font-weight:500;color:var(--sand-400);
+    font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    font-family:'Geist Mono',monospace;
+    border-bottom:1px solid rgba(253,251,247,0.08);
+    background:rgba(253,251,247,0.02);
+  }
+  tbody tr{border-bottom:1px solid rgba(253,251,247,0.04);transition:background-color .4s var(--ease)}
+  tbody tr:hover{background:rgba(164,30,38,0.04)}
+  tbody td{padding:13px 16px;color:#E2D8C2}
+  tbody tr:last-child{border-bottom:none}
+
+  /* === BUTTONS — Pills === */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    font-size:13px;font-weight:500;
+    border-radius:9999px;padding:9px 18px;
+    cursor:pointer;border:none;
+    transition: background-color .5s var(--ease), color .5s var(--ease), transform .5s var(--ease), box-shadow .5s var(--ease);
+    will-change:transform;letter-spacing:-0.005em;
+  }
+  .btn:active{transform:scale(0.98)}
+  .btn-primary{
+    background:var(--crimson);color:var(--cream);
+    box-shadow:0 12px 30px -12px rgba(164,30,38,.55), inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+  .btn-primary:hover{background:var(--crimson-d);transform:translateY(-1px);box-shadow:0 18px 40px -12px rgba(164,30,38,.7), inset 0 1px 0 rgba(255,255,255,0.12)}
+  .btn-ghost{background:transparent;border:1px solid rgba(253,251,247,0.18);color:#C4BBA8}
+  .btn-ghost:hover{background:rgba(253,251,247,0.06);color:var(--cream);border-color:rgba(253,251,247,0.3)}
+  .btn-danger{background:rgba(164,30,38,0.12);color:var(--crimson-l);border:1px solid rgba(200,50,58,0.3)}
+  .btn-danger:hover{background:rgba(164,30,38,0.22)}
+
+  /* === INPUTS === */
+  .input{
+    background:rgba(253,251,247,0.03);
+    border:1px solid rgba(253,251,247,0.10);
+    border-radius:10px;
+    padding:10px 14px;
+    font-size:13px;color:var(--cream);
+    width:100%;outline:none;
+    transition:border-color .5s var(--ease), background-color .5s var(--ease);
+    font-family:'Geist',sans-serif;
+  }
+  .input:focus{border-color:rgba(200,50,58,.55);background:rgba(164,30,38,0.04)}
+  .input::placeholder{color:var(--sand-500)}
+  select.input option{background:var(--card);color:var(--cream)}
+  label{
+    display:block;font-size:10px;color:var(--sand-400);
+    margin-bottom:7px;font-weight:500;
+    font-family:'Geist Mono',monospace;
+    letter-spacing:.18em;text-transform:uppercase;
+  }
+
+  /* === MODALS === */
+  .modal-backdrop{
+    position:fixed;inset:0;
+    background:rgba(14,11,8,.78);
+    z-index:50;backdrop-filter:blur(12px) saturate(140%);
+    display:none;align-items:center;justify-content:center;
+    animation: backdropIn .4s var(--ease);
+  }
+  @keyframes backdropIn{from{opacity:0}to{opacity:1}}
+  .modal-backdrop.open{display:flex}
+  .modal{
+    background:var(--card);
+    border:1px solid rgba(253,251,247,0.10);
+    border-radius:1.5rem;padding:32px;
+    width:100%;max-width:540px;max-height:90vh;overflow-y:auto;
+    animation:modalIn .5s var(--ease);
+    box-shadow: 0 40px 100px -20px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  @keyframes modalIn{from{opacity:0;transform:scale(.96) translateY(12px);filter:blur(8px)}to{opacity:1;transform:none;filter:none}}
+
+  /* === PULSE === */
+  .pulse{animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(164,30,38,.55)}70%{box-shadow:0 0 0 12px rgba(164,30,38,0)}100%{box-shadow:0 0 0 0 rgba(164,30,38,0)}}
+
+  /* === PAGES === */
+  .page{display:none;animation:pageIn .6s var(--ease)}
+  .page.active{display:block}
+  @keyframes pageIn{from{opacity:0;transform:translateY(8px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+
+  .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:14px}
+
+  /* === TOAST === */
+  .toast{
+    position:fixed;bottom:28px;right:28px;z-index:99;
+    background:var(--card);
+    border:1px solid rgba(253,251,247,.12);
+    border-radius:14px;padding:14px 20px;
+    font-size:13px;min-width:240px;
+    animation:slideIn .5s var(--ease);
+    box-shadow: 0 24px 60px -20px rgba(0,0,0,.5);
+  }
+  .toast.success{border-color:rgba(143,180,152,.4);background:rgba(107,142,118,.10);color:#8FB498}
+  .toast.error{border-color:rgba(200,50,58,.4);background:rgba(164,30,38,.10);color:#C8323A}
+  @keyframes slideIn{from{opacity:0;transform:translateY(16px) scale(.95);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+
+  .drop-fill{background:linear-gradient(180deg,var(--fc) 0%,transparent 100%)}
+
+  @keyframes countUp{from{opacity:0;transform:translateY(8px);filter:blur(4px)}to{opacity:1;transform:none;filter:none}}
+  .count-anim{animation:countUp .8s var(--ease) forwards}
+
+  /* Mobile sidebar */
+  @media(max-width:768px){
+    .sidebar{position:fixed;left:-260px;z-index:40;transition:left .5s var(--ease)}
+    .sidebar.open{left:0}
+    .main-area{margin-left:0 !important}
+  }
+
+  .hairline{border-color:rgba(253,251,247,0.08)}
+  .accent{color:var(--crimson-l)}
+  .eyebrow{
+    font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--sand-400);font-family:'Geist Mono',monospace;font-weight:500;
+  }
+
+  /* Headings inside pages */
+  h1, h2, h3 { font-family:'Fraunces',serif; font-weight:300; letter-spacing:-0.025em; }
+
+  /* Subtle paper grain on the page bg */
+  body::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:1;
+    opacity:.025;mix-blend-mode:screen;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='9'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 0.95 0 0 0 0 0.85 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* Top bar refinement */
+  .top-bar { backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%); }
+
+  /* Charts container softening */
+  canvas { border-radius: 12px; }
+</style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<!-- ── SIDEBAR ─────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="p-5 border-b hairline">
+    <div class="flex items-center gap-2.5">
+      <img src="../assets/logo.png" alt="Nutech Blood Bank" class="w-9 h-9 object-contain"/>
+      <div>
+        <div class="display font-extrabold text-white text-[13px] leading-tight">NUTECH</div>
+        <div class="text-[10px] text-cr-500 font-mono tracking-wider">BLOOD BANK</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="py-4 px-2">
+    <div class="eyebrow px-3 mb-2">Main</div>
+    <a class="sidebar-link active" onclick="goto('dashboard')" id="nav-dashboard">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a class="sidebar-link" onclick="goto('inventory')" id="nav-inventory">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/></svg>
+      Blood Inventory
+    </a>
+
+    <div class="eyebrow px-3 mt-5 mb-2">People</div>
+    <a class="sidebar-link" onclick="goto('donors')" id="nav-donors">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Donors
+    </a>
+    <a class="sidebar-link" onclick="goto('patients')" id="nav-patients">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Patients
+    </a>
+
+    <div class="eyebrow px-3 mt-5 mb-2">Operations</div>
+    <a class="sidebar-link" onclick="goto('donations')" id="nav-donations">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      Donations
+    </a>
+    <a class="sidebar-link" onclick="goto('requests')" id="nav-requests">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+      Blood Requests
+      <span id="pending-badge" class="ml-auto bg-cr-500 text-white text-[10px] font-mono px-1.5 py-0.5 rounded-full hidden">0</span>
+    </a>
+    <a class="sidebar-link" onclick="goto('hospitals')" id="nav-hospitals">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6M12 9v6"/></svg>
+      Hospitals
+    </a>
+  </div>
+
+  <div class="absolute bottom-0 left-0 right-0 p-4 border-t hairline">
+    <a href="../../Landing Page.html" class="sidebar-link text-sl-400" style="margin:0">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      Public Site
+    </a>
+  </div>
+</aside>
+
+<!-- ── MAIN ───────────────────────────────────────────────── -->
+<div class="flex-1 flex flex-col overflow-hidden">
+  <!-- Top bar -->
+  <header class="h-14 flex items-center justify-between px-6 border-b hairline bg-ink-900/50 backdrop-blur flex-shrink-0">
+    <div class="flex items-center gap-3">
+      <button onclick="document.getElementById('sidebar').classList.toggle('open')" class="lg:hidden text-sl-300 hover:text-white p-1">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div>
+        <span class="display font-bold text-white text-sm" id="page-title">Dashboard</span>
+        <span class="text-sl-400 text-xs ml-2 mono" id="page-subtitle">Overview</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 mono text-[11px] text-sl-400">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cr-500 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-cr-500"></span>
+        </span>
+        LIVE
+      </div>
+      <div class="w-8 h-8 rounded-full bg-cr-500 flex items-center justify-center text-white font-bold text-xs display">AD</div>
+    </div>
+  </header>
+
+  <!-- Page content -->
+  <main class="flex-1 overflow-y-auto p-6">
+
+    <!-- ══ DASHBOARD ══════════════════════════════════════════ -->
+    <div class="page active" id="page-dashboard">
+
+      <!-- Stats row -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="stat-card red">
+          <div class="eyebrow mb-3">Active Donors</div>
+          <div class="display font-black text-white text-4xl count-anim" id="stat-donors">—</div>
+          <div class="text-sl-400 text-xs mt-2">Registered & eligible</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="eyebrow mb-3">Total Donations</div>
+          <div class="display font-black text-white text-4xl count-anim" id="stat-donations">—</div>
+          <div class="text-sl-400 text-xs mt-2">All time completed</div>
+        </div>
+        <div class="stat-card emerald">
+          <div class="eyebrow mb-3">Blood Units (Stock)</div>
+          <div class="display font-black text-white text-4xl count-anim" id="stat-units">—</div>
+          <div class="text-sl-400 text-xs mt-2">Whole blood, all banks</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="eyebrow mb-3">Pending Requests</div>
+          <div class="display font-black text-cr-500 text-4xl count-anim" id="stat-requests">—</div>
+          <div class="text-sl-400 text-xs mt-2" id="stat-critical-label">Including critical</div>
+        </div>
+      </div>
+
+      <!-- Inventory + Recent Donations -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Blood Inventory Chart -->
+        <div class="card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <div class="eyebrow mb-1">Live Inventory</div>
+              <h3 class="display font-bold text-white text-lg">Blood Stock by Group</h3>
+            </div>
+            <div class="flex items-center gap-2 mono text-[10px]">
+              <span class="w-2 h-2 rounded-full bg-cr-500 inline-block"></span><span class="text-sl-400">Critical</span>
+              <span class="w-2 h-2 rounded-full bg-amber-400 inline-block ml-2"></span><span class="text-sl-400">Low</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400 inline-block ml-2"></span><span class="text-sl-400">Stable</span>
+            </div>
+          </div>
+          <div class="relative h-64">
+            <canvas id="inventoryChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Urgent requests -->
+        <div class="card p-5">
+          <div class="section-header">
+            <div>
+              <div class="eyebrow mb-1">Needs Attention</div>
+              <h3 class="display font-bold text-white text-lg">Urgent Requests</h3>
+            </div>
+            <button class="btn btn-ghost text-xs" onclick="goto('requests')">View All →</button>
+          </div>
+          <div id="urgent-requests-list" class="space-y-2">
+            <div class="text-sl-500 text-sm py-4 text-center">Loading…</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Donations -->
+      <div class="card p-5">
+        <div class="section-header">
+          <div>
+            <div class="eyebrow mb-1">Activity Feed</div>
+            <h3 class="display font-bold text-white text-lg">Recent Donations</h3>
+          </div>
+          <button class="btn btn-ghost text-xs" onclick="goto('donations')">View All →</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Donor</th><th>Blood Group</th><th>Units</th><th>Date</th>
+            </tr></thead>
+            <tbody id="recent-donations-table">
+              <tr><td colspan="4" class="text-sl-500 text-center py-6">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div><!-- /dashboard -->
+
+    <!-- ══ BLOOD INVENTORY ════════════════════════════════════ -->
+    <div class="page" id="page-inventory">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow mb-1">Stock Management</div>
+          <h2 class="display font-black text-white text-3xl">Blood <span class="accent">Inventory</span></h2>
+        </div>
+      </div>
+      <!-- Blood drops visual -->
+      <div id="blood-drops-grid" class="grid grid-cols-4 sm:grid-cols-8 gap-3 mb-8"></div>
+
+      <!-- Table -->
+      <div class="card p-5">
+        <div class="section-header">
+          <h3 class="display font-bold text-white text-lg">All Inventory Lines</h3>
+          <div class="flex gap-2">
+            <select class="input w-40" id="inv-bank-filter" onchange="loadInventory()">
+              <option value="">All Banks</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Bank</th><th>City</th><th>Group</th><th>Component</th>
+              <th>Available</th><th>Reserved</th><th>Net</th><th>Expiry</th><th>Status</th><th></th>
+            </tr></thead>
+            <tbody id="inventory-table">
+              <tr><td colspan="10" class="text-sl-500 text-center py-8">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DONORS ═════════════════════════════════════════════ -->
+    <div class="page" id="page-donors">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow mb-1">Donor Registry</div>
+          <h2 class="display font-black text-white text-3xl">Donors</h2>
+        </div>
+        <button class="btn btn-primary" onclick="openDonorModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Donor
+        </button>
+      </div>
+      <!-- Filters -->
+      <div class="flex flex-wrap gap-3 mb-5">
+        <input class="input w-56" placeholder="Search name / phone…" id="donor-search" oninput="debounce(loadDonors, 400)()"/>
+        <select class="input w-36" id="donor-bg-filter" onchange="loadDonors()">
+          <option value="">All Groups</option>
+        </select>
+        <select class="input w-32" id="donor-active-filter" onchange="loadDonors()">
+          <option value="1">Active</option>
+          <option value="">All</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+      <div class="card p-5">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Name</th><th>Blood Group</th><th>Gender</th><th>City</th>
+              <th>Phone</th><th>Donations</th><th>Last Donated</th><th>Eligibility</th><th></th>
+            </tr></thead>
+            <tbody id="donors-table">
+              <tr><td colspan="9" class="text-sl-500 text-center py-8">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ PATIENTS ═══════════════════════════════════════════ -->
+    <div class="page" id="page-patients">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow mb-1">Patient Records</div>
+          <h2 class="display font-black text-white text-3xl">Patients</h2>
+        </div>
+        <button class="btn btn-primary" onclick="openPatientModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add Patient
+        </button>
+      </div>
+      <div class="flex gap-3 mb-5">
+        <input class="input w-56" placeholder="Search name / MRN…" id="patient-search" oninput="debounce(loadPatients, 400)()"/>
+        <select class="input w-48" id="patient-hospital-filter" onchange="loadPatients()">
+          <option value="">All Hospitals</option>
+        </select>
+      </div>
+      <div class="card p-5">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>MRN</th><th>Name</th><th>Blood Group</th><th>Hospital</th>
+              <th>Diagnosis</th><th>Phone</th><th>Registered</th><th></th>
+            </tr></thead>
+            <tbody id="patients-table">
+              <tr><td colspan="8" class="text-sl-500 text-center py-8">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ DONATIONS ══════════════════════════════════════════ -->
+    <div class="page" id="page-donations">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow mb-1">Donation Records</div>
+          <h2 class="display font-black text-white text-3xl">Donations</h2>
+        </div>
+        <button class="btn btn-primary" onclick="openDonationModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Record Donation
+        </button>
+      </div>
+      <div class="card p-5">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Donor</th><th>Blood Group</th><th>Bank</th>
+              <th>Units</th><th>Hb</th><th>Date</th><th>Status</th>
+            </tr></thead>
+            <tbody id="donations-table">
+              <tr><td colspan="8" class="text-sl-500 text-center py-8">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ BLOOD REQUESTS ══════════════════════════════════════ -->
+    <div class="page" id="page-requests">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow mb-1">Request Management</div>
+          <h2 class="display font-black text-white text-3xl">Blood <span class="accent">Requests</span></h2>
+        </div>
+        <button class="btn btn-primary" onclick="openRequestModal()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Request
+        </button>
+      </div>
+      <div class="flex flex-wrap gap-3 mb-5">
+        <select class="input w-36" id="req-status-filter" onchange="loadRequests()">
+          <option value="">All Status</option>
+          <option value="pending">Pending</option>
+          <option value="approved">Approved</option>
+          <option value="fulfilled">Fulfilled</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <select class="input w-36" id="req-urgency-filter" onchange="loadRequests()">
+          <option value="">All Urgency</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div class="card p-5">
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>#</th><th>Patient</th><th>Hospital</th><th>Group</th>
+              <th>Units</th><th>Urgency</th><th>Status</th><th>Date</th><th></th>
+            </tr></thead>
+            <tbody id="requests-table">
+              <tr><td colspan="9" class="text-sl-500 text-center py-8">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ HOSPITALS ══════════════════════════════════════════ -->
+    <div class="page" id="page-hospitals">
+      <div class="section-header">
+        <div>
+          <div class="eyebrow mb-1">Partner Network</div>
+          <h2 class="display font-black text-white text-3xl">Hospitals</h2>
+        </div>
+      </div>
+      <div id="hospitals-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="text-sl-500 text-center py-8 col-span-3">Loading…</div>
+      </div>
+    </div>
+
+  </main>
+</div><!-- /main -->
+
+<!-- ══ MODALS ════════════════════════════════════════════════ -->
+
+<!-- Donor Modal -->
+<div class="modal-backdrop" id="donor-modal">
+  <div class="modal" onclick.stop>
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="display font-bold text-white text-xl" id="donor-modal-title">Add Donor</h3>
+      <button class="text-sl-400 hover:text-white" onclick="closeModal('donor-modal')">✕</button>
+    </div>
+    <form id="donor-form" onsubmit="saveDonor(event)">
+      <input type="hidden" id="donor-id"/>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>First Name *</label><input class="input" id="d-first" required/></div>
+        <div><label>Last Name *</label><input class="input" id="d-last" required/></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>Date of Birth *</label><input type="date" class="input" id="d-dob" required/></div>
+        <div><label>Gender *</label>
+          <select class="input" id="d-gender" required>
+            <option value="">Select…</option>
+            <option>Male</option><option>Female</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>Blood Group *</label><select class="input" id="d-bg" required></select></div>
+        <div><label>Weight (kg)</label><input type="number" step="0.1" min="50" class="input" id="d-weight" placeholder="≥ 50"/></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>Phone *</label><input class="input" id="d-phone" required placeholder="03XX-XXXXXXX"/></div>
+        <div><label>Email</label><input type="email" class="input" id="d-email" placeholder="optional"/></div>
+      </div>
+      <div class="mb-4">
+        <label>City</label><input class="input" id="d-city" placeholder="Islamabad, Karachi…"/>
+      </div>
+      <div class="mb-5">
+        <label>Address</label><input class="input" id="d-address"/>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('donor-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Donor</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Patient Modal -->
+<div class="modal-backdrop" id="patient-modal">
+  <div class="modal">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="display font-bold text-white text-xl" id="patient-modal-title">Add Patient</h3>
+      <button class="text-sl-400 hover:text-white" onclick="closeModal('patient-modal')">✕</button>
+    </div>
+    <form id="patient-form" onsubmit="savePatient(event)">
+      <input type="hidden" id="patient-id"/>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>First Name *</label><input class="input" id="p-first" required/></div>
+        <div><label>Last Name *</label><input class="input" id="p-last" required/></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>Blood Group</label><select class="input" id="p-bg"></select></div>
+        <div><label>Gender</label>
+          <select class="input" id="p-gender">
+            <option value="">Select…</option>
+            <option>Male</option><option>Female</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>Hospital</label><select class="input" id="p-hospital"></select></div>
+        <div><label>Phone</label><input class="input" id="p-phone"/></div>
+      </div>
+      <div class="mb-4">
+        <label>Diagnosis / Reason for transfusion</label>
+        <input class="input" id="p-diagnosis" placeholder="Thalassaemia, post-surgical anaemia…"/>
+      </div>
+      <div class="mb-5">
+        <label>Address</label><input class="input" id="p-address"/>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('patient-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Patient</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Donation Modal -->
+<div class="modal-backdrop" id="donation-modal">
+  <div class="modal">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="display font-bold text-white text-xl">Record Donation</h3>
+      <button class="text-sl-400 hover:text-white" onclick="closeModal('donation-modal')">✕</button>
+    </div>
+    <form id="donation-form" onsubmit="saveDonation(event)">
+      <div class="mb-4">
+        <label>Donor ID *</label>
+        <input type="number" class="input" id="don-donor-id" required placeholder="Enter donor ID"/>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>Blood Group *</label><select class="input" id="don-bg" required></select></div>
+        <div><label>Bank *</label><select class="input" id="don-bank" required></select></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>Units Donated</label><input type="number" step="0.1" min="0.1" max="2" class="input" id="don-units" value="1.0"/></div>
+        <div><label>Haemoglobin (g/dL)</label><input type="number" step="0.1" class="input" id="don-hb" placeholder="12.5"/></div>
+      </div>
+      <div class="mb-4">
+        <label>Blood Pressure</label><input class="input" id="don-bp" placeholder="120/80"/>
+      </div>
+      <div class="mb-5">
+        <label>Notes</label><input class="input" id="don-notes" placeholder="Any observations…"/>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('donation-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Record Donation</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Request Modal -->
+<div class="modal-backdrop" id="request-modal">
+  <div class="modal">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="display font-bold text-white text-xl">New Blood Request</h3>
+      <button class="text-sl-400 hover:text-white" onclick="closeModal('request-modal')">✕</button>
+    </div>
+    <form id="request-form" onsubmit="saveRequest(event)">
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>Hospital *</label><select class="input" id="req-hospital" required></select></div>
+        <div><label>Blood Group *</label><select class="input" id="req-bg" required></select></div>
+      </div>
+      <div class="grid grid-cols-2 gap-4 mb-4">
+        <div><label>Units Requested *</label><input type="number" step="0.5" min="0.5" class="input" id="req-units" required placeholder="1.0"/></div>
+        <div><label>Urgency Level *</label>
+          <select class="input" id="req-urgency" required>
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
+        </div>
+      </div>
+      <div class="mb-4">
+        <label>Patient ID (optional)</label><input type="number" class="input" id="req-patient" placeholder="Leave blank if anonymous"/>
+      </div>
+      <div class="mb-5">
+        <label>Notes / Clinical context</label>
+        <input class="input" id="req-notes" placeholder="Reason for request…"/>
+      </div>
+      <div class="flex justify-end gap-3">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('request-modal')">Cancel</button>
+        <button type="submit" class="btn btn-primary">Submit Request</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Update Request Status Modal -->
+<div class="modal-backdrop" id="req-status-modal">
+  <div class="modal" style="max-width:360px">
+    <div class="flex items-center justify-between mb-5">
+      <h3 class="display font-bold text-white text-xl">Update Status</h3>
+      <button class="text-sl-400 hover:text-white" onclick="closeModal('req-status-modal')">✕</button>
+    </div>
+    <input type="hidden" id="req-status-id"/>
+    <input type="hidden" id="req-status-current-units"/>
+    <input type="hidden" id="req-status-bg"/>
+    <div class="mb-5">
+      <label>New Status</label>
+      <select class="input" id="req-new-status">
+        <option value="approved">Approved</option>
+        <option value="fulfilled">Fulfilled</option>
+        <option value="rejected">Rejected</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+    </div>
+    <div class="flex justify-end gap-3">
+      <button class="btn btn-ghost" onclick="closeModal('req-status-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="updateRequestStatus()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCRIPTS ════════════════════════════════════════════════ -->
+<script>
+if (!sessionStorage.getItem('nb_admin')) window.location.href = 'login.html';
+
+const API = 'http://localhost:3000/api';
+let bloodGroups = [], banks = [], hospitals = [], staffList = [];
+let inventoryChart = null;
+
+// ── Utility ───────────────────────────────────────────────
+function debounce(fn, ms) {
+  let t;
+  return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+
+function fmtDate(dt) {
+  if (!dt) return '—';
+  return new Date(dt).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+function eligibility(last) {
+  if (!last) return '<span class="badge badge-stable">Eligible</span>';
+  const diff = (new Date() - new Date(last)) / (1000*60*60*24*30);
+  if (diff >= 4) return '<span class="badge badge-stable">Eligible</span>';
+  const left = Math.ceil(4 - diff);
+  return `<span class="badge badge-medium">${left}mo cooldown</span>`;
+}
+
+function badgeFor(val, type = 'urgency') {
+  const map = {
+    critical:'badge-critical', high:'badge-high', medium:'badge-medium', low:'badge-low',
+    pending:'badge-pending', approved:'badge-approved', fulfilled:'badge-fulfilled',
+    completed:'badge-completed', rejected:'badge-rejected', stable:'badge-stable'
+  };
+  const cls = map[val?.toLowerCase()] || 'badge-medium';
+  return `<span class="badge ${cls}">${val}</span>`;
+}
+
+// ── Navigation ─────────────────────────────────────────────
+function goto(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+  document.getElementById(`nav-${page}`)?.classList.add('active');
+  const titles = {
+    dashboard:  ['Dashboard','Overview'],
+    inventory:  ['Blood Inventory','Stock Management'],
+    donors:     ['Donors','Registry'],
+    patients:   ['Patients','Records'],
+    donations:  ['Donations','History'],
+    requests:   ['Blood Requests','Operations'],
+    hospitals:  ['Hospitals','Partner Network'],
+  };
+  const [t, s] = titles[page] || ['Admin',''];
+  document.getElementById('page-title').textContent = t;
+  document.getElementById('page-subtitle').textContent = s;
+
+  // Lazy-load page data
+  const loaders = {
+    dashboard: loadDashboard,
+    inventory: loadInventory,
+    donors:    loadDonors,
+    patients:  loadPatients,
+    donations: loadDonations,
+    requests:  loadRequests,
+    hospitals: loadHospitals,
+  };
+  loaders[page]?.();
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+// ── Reference data ─────────────────────────────────────────
+async function loadRefData() {
+  const [bgRes, bankRes, hospRes] = await Promise.all([
+    fetch(`${API}/blood-groups`),
+    fetch(`${API}/blood-banks`),
+    fetch(`${API}/hospitals`),
+  ]);
+  bloodGroups = (await bgRes.json()).data;
+  banks       = (await bankRes.json()).data;
+  hospitals   = (await hospRes.json()).data;
+
+  // Populate selects
+  const bgOpts = bloodGroups.map(g => `<option value="${g.blood_group_id}">${g.group_name}</option>`).join('');
+  ['d-bg','p-bg','don-bg','req-bg','donor-bg-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = (id.includes('filter') ? '<option value="">All Groups</option>' : '<option value="">Select…</option>') + bgOpts;
+  });
+
+  const bankOpts = banks.map(b => `<option value="${b.bank_id}">${b.name}</option>`).join('');
+  ['don-bank','inv-bank-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = (id.includes('filter') ? '<option value="">All Banks</option>' : '<option value="">Select…</option>') + bankOpts;
+  });
+
+  const hospOpts = hospitals.map(h => `<option value="${h.hospital_id}">${h.name}</option>`).join('');
+  ['p-hospital','req-hospital','patient-hospital-filter'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = (id.includes('filter') ? '<option value="">All Hospitals</option>' : '<option value="">Select…</option>') + hospOpts;
+  });
+}
+
+// ── Dashboard ──────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const res = await fetch(`${API}/stats`);
+    const { data } = await res.json();
+
+    document.getElementById('stat-donors').textContent    = data.totalDonors.toLocaleString();
+    document.getElementById('stat-donations').textContent = data.totalDonations.toLocaleString();
+    document.getElementById('stat-units').textContent     = Math.round(data.totalUnits).toLocaleString();
+    document.getElementById('stat-requests').textContent  = data.pendingRequests;
+    document.getElementById('stat-critical-label').textContent =
+      `${data.criticalRequests} critical pending`;
+
+    // Pending badge in sidebar
+    if (data.pendingRequests > 0) {
+      const b = document.getElementById('pending-badge');
+      b.textContent = data.pendingRequests;
+      b.classList.remove('hidden');
+    }
+
+    // Inventory chart
+    const labels = data.inventory.map(i => i.group_name);
+    const values = data.inventory.map(i => Math.round(i.units));
+    const colors = data.inventory.map(i =>
+      i.status === 'critical' ? '#ED1B24' : i.status === 'low' ? '#f59e0b' : '#10b981');
+
+    if (inventoryChart) inventoryChart.destroy();
+    const ctx = document.getElementById('inventoryChart').getContext('2d');
+    inventoryChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colors.map(c => c + '30'),
+          borderColor: colors,
+          borderWidth: 1.5,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#828a96', font: { family: "'JetBrains Mono'" } } },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#828a96', font: { family: "'JetBrains Mono'" } } }
+        }
+      }
+    });
+
+    // Urgent requests
+    const urEl = document.getElementById('urgent-requests-list');
+    if (data.urgentRequests.length === 0) {
+      urEl.innerHTML = '<p class="text-sl-500 text-sm text-center py-4">No urgent requests</p>';
+    } else {
+      urEl.innerHTML = data.urgentRequests.map(r => `
+        <div class="flex items-center justify-between p-3 rounded-lg bg-ink-800/50 border border-white/5">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-cr-500/15 flex items-center justify-center">
+              <span class="mono text-cr-500 text-xs font-bold">${r.group_name}</span>
+            </div>
+            <div>
+              <div class="text-white text-sm font-medium">${r.hospital}</div>
+              <div class="text-sl-400 text-xs mono">${r.units_requested} units · ${fmtDate(r.request_date)}</div>
+            </div>
+          </div>
+          ${badgeFor(r.urgency_level)}
+        </div>`).join('');
+    }
+
+    // Recent donations table
+    document.getElementById('recent-donations-table').innerHTML = data.recentDonations.length === 0
+      ? '<tr><td colspan="4" class="text-sl-500 text-center py-6">No donations yet</td></tr>'
+      : data.recentDonations.map(d => `
+        <tr>
+          <td class="font-medium text-white">${d.donor_name}</td>
+          <td><span class="mono font-bold text-cr-500">${d.group_name}</span></td>
+          <td class="mono">${d.units_donated}</td>
+          <td class="mono text-sl-400">${fmtDate(d.donation_date)}</td>
+        </tr>`).join('');
+
+  } catch(e) { console.error(e); }
+}
+
+// ── Inventory ──────────────────────────────────────────────
+async function loadInventory() {
+  const bankId = document.getElementById('inv-bank-filter')?.value || '';
+  const url = bankId ? `${API}/inventory?bank_id=${bankId}` : `${API}/inventory`;
+  const res = await fetch(url);
+  const { data } = await res.json();
+
+  // Blood drops visual
+  const summary = {};
+  data.filter(i => i.component_type === 'Whole Blood').forEach(i => {
+    const k = i.group_name;
+    summary[k] = (summary[k] || 0) + i.units_available;
+  });
+  const grid = document.getElementById('blood-drops-grid');
+  grid.innerHTML = Object.entries(summary).map(([g, u]) => {
+    const maxU = 500, pct = Math.min(100, Math.round(u / maxU * 100));
+    const status = pct < 10 ? 'critical' : pct < 30 ? 'low' : 'stable';
+    const col = status === 'critical' ? '#ED1B24' : status === 'low' ? '#f59e0b' : '#10b981';
+    return `
+      <div class="text-center">
+        <div class="relative mx-auto w-14 h-20 mb-2">
+          <svg viewBox="0 0 60 84" class="w-full h-full" style="filter:drop-shadow(0 4px 12px ${col}40)">
+            <path d="M30 3C30 3 7 34 7 54a23 23 0 0 0 46 0C53 34 30 3 30 3Z" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+            <clipPath id="clip-${g.replace(/[+\-]/g,'_')}">
+              <path d="M30 3C30 3 7 34 7 54a23 23 0 0 0 46 0C53 34 30 3 30 3Z"/>
+            </clipPath>
+            <g clip-path="url(#clip-${g.replace(/[+\-]/g,'_')})">
+              <rect x="-5" y="${84 - (84*pct/100)}" width="70" height="${84*pct/100+10}" fill="${col}" opacity=".75"/>
+            </g>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span class="display font-black text-white text-sm">${g}</span>
+            <span class="mono text-[9px] text-white/70">${pct}%</span>
+          </div>
+        </div>
+        <div class="mono text-[10px]" style="color:${col}">${Math.round(u)}u</div>
+      </div>`;
+  }).join('');
+
+  // Table
+  document.getElementById('inventory-table').innerHTML = data.length === 0
+    ? '<tr><td colspan="10" class="text-sl-500 text-center py-8">No inventory data</td></tr>'
+    : data.map(i => {
+      const net = i.units_available - i.units_reserved;
+      const pct = i.units_available < 30 ? 'critical' : i.units_available < 100 ? 'low' : 'stable';
+      return `
+        <tr>
+          <td class="font-medium text-white">${i.bank_name}</td>
+          <td class="text-sl-400">${i.city}</td>
+          <td><span class="mono font-bold text-cr-500">${i.group_name}</span></td>
+          <td class="mono text-sl-300">${i.component_type}</td>
+          <td class="mono text-white font-semibold">${i.units_available}</td>
+          <td class="mono text-sl-400">${i.units_reserved}</td>
+          <td class="mono font-bold ${net < 10 ? 'text-cr-500' : 'text-emerald-400'}">${net.toFixed(1)}</td>
+          <td class="mono text-sl-400">${fmtDate(i.expiry_date)}</td>
+          <td>${badgeFor(pct)}</td>
+          <td>
+            <button class="btn btn-ghost text-xs py-1 px-2" onclick="editInventory(${i.inventory_id}, ${i.units_available}, ${i.units_reserved}, '${i.expiry_date}')">Edit</button>
+          </td>
+        </tr>`;
+    }).join('');
+}
+
+function editInventory(id, avail, res, exp) {
+  const newAvail = prompt(`Update units available (current: ${avail}):`, avail);
+  if (newAvail === null) return;
+  const newRes = prompt(`Update units reserved (current: ${res}):`, res);
+  if (newRes === null) return;
+  fetch(`${API}/inventory/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ units_available: parseFloat(newAvail), units_reserved: parseFloat(newRes||0), expiry_date: exp })
+  }).then(() => { toast('Inventory updated'); loadInventory(); });
+}
+
+// ── Donors ─────────────────────────────────────────────────
+async function loadDonors() {
+  const search = document.getElementById('donor-search')?.value || '';
+  const bg     = document.getElementById('donor-bg-filter')?.value || '';
+  const active = document.getElementById('donor-active-filter')?.value ?? '1';
+  let url = `${API}/donors?active=${active}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  if (bg)     url += `&blood_group=${bg}`;
+  const res = await fetch(url);
+  const { data } = await res.json();
+
+  document.getElementById('donors-table').innerHTML = data.length === 0
+    ? '<tr><td colspan="9" class="text-sl-500 text-center py-8">No donors found</td></tr>'
+    : data.map(d => `
+      <tr>
+        <td class="font-medium text-white">${d.first_name} ${d.last_name}</td>
+        <td><span class="mono font-bold text-cr-500">${d.blood_group_name}</span></td>
+        <td class="text-sl-400">${d.gender}</td>
+        <td class="text-sl-400">${d.city||'—'}</td>
+        <td class="mono text-sl-400">${d.phone}</td>
+        <td class="mono text-white font-semibold">${d.total_donations}</td>
+        <td class="mono text-sl-400">${fmtDate(d.last_donation_date)}</td>
+        <td>${eligibility(d.last_donation_date)}</td>
+        <td class="flex gap-1">
+          <button class="btn btn-ghost text-xs py-1 px-2" onclick="editDonor(${d.donor_id})">Edit</button>
+          <button class="btn btn-danger text-xs py-1 px-2" onclick="deleteDonor(${d.donor_id})">Remove</button>
+        </td>
+      </tr>`).join('');
+}
+
+function openDonorModal(donor = null) {
+  document.getElementById('donor-modal-title').textContent = donor ? 'Edit Donor' : 'Add Donor';
+  ['donor-id','d-first','d-last','d-dob','d-gender','d-bg','d-weight','d-phone','d-email','d-city','d-address'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  if (donor) {
+    document.getElementById('donor-id').value  = donor.donor_id;
+    document.getElementById('d-first').value   = donor.first_name;
+    document.getElementById('d-last').value    = donor.last_name;
+    document.getElementById('d-dob').value     = donor.dob;
+    document.getElementById('d-gender').value  = donor.gender;
+    document.getElementById('d-bg').value      = donor.blood_group_id;
+    document.getElementById('d-weight').value  = donor.weight_kg||'';
+    document.getElementById('d-phone').value   = donor.phone;
+    document.getElementById('d-email').value   = donor.email||'';
+    document.getElementById('d-city').value    = donor.city||'';
+    document.getElementById('d-address').value = donor.address||'';
+  }
+  openModal('donor-modal');
+}
+
+async function editDonor(id) {
+  const res = await fetch(`${API}/donors/${id}`);
+  const { data } = await res.json();
+  openDonorModal(data);
+}
+
+async function saveDonor(e) {
+  e.preventDefault();
+  const id = document.getElementById('donor-id').value;
+  const body = {
+    first_name:    document.getElementById('d-first').value,
+    last_name:     document.getElementById('d-last').value,
+    dob:           document.getElementById('d-dob').value,
+    gender:        document.getElementById('d-gender').value,
+    blood_group_id:document.getElementById('d-bg').value,
+    weight_kg:     document.getElementById('d-weight').value || null,
+    phone:         document.getElementById('d-phone').value,
+    email:         document.getElementById('d-email').value || null,
+    city:          document.getElementById('d-city').value || null,
+    address:       document.getElementById('d-address').value || null,
+  };
+  const method = id ? 'PUT' : 'POST';
+  const url    = id ? `${API}/donors/${id}` : `${API}/donors`;
+  const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (data.success) {
+    toast(id ? 'Donor updated' : 'Donor registered');
+    closeModal('donor-modal');
+    loadDonors();
+  } else {
+    toast(data.error || 'Error saving donor', 'error');
+  }
+}
+
+async function deleteDonor(id) {
+  if (!confirm('Mark this donor as inactive?')) return;
+  await fetch(`${API}/donors/${id}`, { method: 'DELETE' });
+  toast('Donor deactivated');
+  loadDonors();
+}
+
+// ── Patients ───────────────────────────────────────────────
+async function loadPatients() {
+  const search  = document.getElementById('patient-search')?.value || '';
+  const hospId  = document.getElementById('patient-hospital-filter')?.value || '';
+  let url = `${API}/patients`;
+  const qs = [];
+  if (search) qs.push(`search=${encodeURIComponent(search)}`);
+  if (hospId) qs.push(`hospital_id=${hospId}`);
+  if (qs.length) url += '?' + qs.join('&');
+  const res = await fetch(url);
+  const { data } = await res.json();
+
+  document.getElementById('patients-table').innerHTML = data.length === 0
+    ? '<tr><td colspan="8" class="text-sl-500 text-center py-8">No patients found</td></tr>'
+    : data.map(p => `
+      <tr>
+        <td class="mono text-sl-400 text-xs">${p.medical_record_no||'—'}</td>
+        <td class="font-medium text-white">${p.first_name} ${p.last_name}</td>
+        <td><span class="mono font-bold text-cr-500">${p.blood_group_name||'—'}</span></td>
+        <td class="text-sl-300">${p.hospital_name||'—'}</td>
+        <td class="text-sl-400 text-xs max-w-[160px] truncate">${p.diagnosis||'—'}</td>
+        <td class="mono text-sl-400">${p.phone||'—'}</td>
+        <td class="mono text-sl-400">${fmtDate(p.registered_date)}</td>
+        <td>
+          <button class="btn btn-ghost text-xs py-1 px-2" onclick="editPatient(${p.patient_id})">Edit</button>
+        </td>
+      </tr>`).join('');
+}
+
+function openPatientModal(patient = null) {
+  document.getElementById('patient-modal-title').textContent = patient ? 'Edit Patient' : 'Add Patient';
+  ['patient-id','p-first','p-last','p-bg','p-gender','p-hospital','p-phone','p-diagnosis','p-address'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  if (patient) {
+    document.getElementById('patient-id').value    = patient.patient_id;
+    document.getElementById('p-first').value       = patient.first_name;
+    document.getElementById('p-last').value        = patient.last_name;
+    document.getElementById('p-bg').value          = patient.blood_group_id||'';
+    document.getElementById('p-gender').value      = patient.gender||'';
+    document.getElementById('p-hospital').value    = patient.hospital_id||'';
+    document.getElementById('p-phone').value       = patient.phone||'';
+    document.getElementById('p-diagnosis').value   = patient.diagnosis||'';
+    document.getElementById('p-address').value     = patient.address||'';
+  }
+  openModal('patient-modal');
+}
+
+async function editPatient(id) {
+  const res = await fetch(`${API}/patients/${id}`);
+  const { data } = await res.json();
+  openPatientModal(data);
+}
+
+async function savePatient(e) {
+  e.preventDefault();
+  const id = document.getElementById('patient-id').value;
+  const body = {
+    first_name:    document.getElementById('p-first').value,
+    last_name:     document.getElementById('p-last').value,
+    gender:        document.getElementById('p-gender').value || null,
+    blood_group_id:document.getElementById('p-bg').value || null,
+    hospital_id:   document.getElementById('p-hospital').value || null,
+    phone:         document.getElementById('p-phone').value || null,
+    diagnosis:     document.getElementById('p-diagnosis').value || null,
+    address:       document.getElementById('p-address').value || null,
+  };
+  const method = id ? 'PUT' : 'POST';
+  const url    = id ? `${API}/patients/${id}` : `${API}/patients`;
+  const res = await fetch(url, { method, headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (data.success) {
+    toast(id ? 'Patient updated' : 'Patient registered');
+    closeModal('patient-modal');
+    loadPatients();
+  } else {
+    toast(data.error || 'Error saving patient', 'error');
+  }
+}
+
+// ── Donations ──────────────────────────────────────────────
+async function loadDonations() {
+  const res = await fetch(`${API}/donations?limit=50`);
+  const { data } = await res.json();
+  document.getElementById('donations-table').innerHTML = data.length === 0
+    ? '<tr><td colspan="8" class="text-sl-500 text-center py-8">No donations recorded</td></tr>'
+    : data.map(d => `
+      <tr>
+        <td class="mono text-sl-500 text-xs">#${d.donation_id}</td>
+        <td class="font-medium text-white">${d.donor_name}</td>
+        <td><span class="mono font-bold text-cr-500">${d.group_name}</span></td>
+        <td class="text-sl-400">${d.bank_name}</td>
+        <td class="mono text-white">${d.units_donated}</td>
+        <td class="mono text-sl-300">${d.hemoglobin_level||'—'}</td>
+        <td class="mono text-sl-400">${fmtDate(d.donation_date)}</td>
+        <td>${badgeFor(d.status, 'status')}</td>
+      </tr>`).join('');
+}
+
+function openDonationModal() { openModal('donation-modal'); }
+async function saveDonation(e) {
+  e.preventDefault();
+  const body = {
+    donor_id:        document.getElementById('don-donor-id').value,
+    blood_group_id:  document.getElementById('don-bg').value,
+    bank_id:         document.getElementById('don-bank').value,
+    units_donated:   document.getElementById('don-units').value || 1.0,
+    hemoglobin_level:document.getElementById('don-hb').value || null,
+    blood_pressure:  document.getElementById('don-bp').value || null,
+    notes:           document.getElementById('don-notes').value || null,
+  };
+  const res = await fetch(`${API}/donations`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (data.success) {
+    toast('Donation recorded successfully');
+    closeModal('donation-modal');
+    loadDonations();
+    if (document.getElementById('page-inventory').classList.contains('active')) loadInventory();
+  } else {
+    toast(data.error || 'Error recording donation', 'error');
+  }
+}
+
+// ── Requests ───────────────────────────────────────────────
+async function loadRequests() {
+  const status  = document.getElementById('req-status-filter')?.value || '';
+  const urgency = document.getElementById('req-urgency-filter')?.value || '';
+  const qs = [];
+  if (status)  qs.push(`status=${status}`);
+  if (urgency) qs.push(`urgency=${urgency}`);
+  const res = await fetch(`${API}/requests${qs.length ? '?'+qs.join('&') : ''}`);
+  const { data } = await res.json();
+
+  document.getElementById('requests-table').innerHTML = data.length === 0
+    ? '<tr><td colspan="9" class="text-sl-500 text-center py-8">No requests found</td></tr>'
+    : data.map(r => `
+      <tr>
+        <td class="mono text-sl-500 text-xs">#${r.request_id}</td>
+        <td class="text-sl-300">${r.patient_name||'Anonymous'}</td>
+        <td class="font-medium text-white">${r.hospital_name}</td>
+        <td><span class="mono font-bold text-cr-500">${r.group_name}</span></td>
+        <td class="mono text-white">${r.units_requested}</td>
+        <td>${badgeFor(r.urgency_level)}</td>
+        <td>${badgeFor(r.status, 'status')}</td>
+        <td class="mono text-sl-400">${fmtDate(r.request_date)}</td>
+        <td>
+          ${r.status === 'pending' || r.status === 'approved'
+            ? `<button class="btn btn-ghost text-xs py-1 px-2" onclick="openStatusModal(${r.request_id},'${r.status}',${r.units_requested},${r.blood_group_id})">Update</button>`
+            : `<span class="text-sl-600 text-xs">—</span>`}
+        </td>
+      </tr>`).join('');
+}
+
+function openRequestModal() { openModal('request-modal'); }
+async function saveRequest(e) {
+  e.preventDefault();
+  const body = {
+    hospital_id:    document.getElementById('req-hospital').value,
+    blood_group_id: document.getElementById('req-bg').value,
+    units_requested:document.getElementById('req-units').value,
+    urgency_level:  document.getElementById('req-urgency').value,
+    patient_id:     document.getElementById('req-patient').value || null,
+    notes:          document.getElementById('req-notes').value || null,
+  };
+  const res = await fetch(`${API}/requests`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (data.success) {
+    toast('Request submitted');
+    closeModal('request-modal');
+    loadRequests();
+  } else {
+    toast(data.error || 'Error submitting request', 'error');
+  }
+}
+
+function openStatusModal(id, currentStatus, units, bgId) {
+  document.getElementById('req-status-id').value = id;
+  document.getElementById('req-status-current-units').value = units;
+  document.getElementById('req-status-bg').value = bgId;
+  openModal('req-status-modal');
+}
+
+async function updateRequestStatus() {
+  const id     = document.getElementById('req-status-id').value;
+  const status = document.getElementById('req-new-status').value;
+  const res = await fetch(`${API}/requests/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, urgency_level: 'medium', units_requested: document.getElementById('req-status-current-units').value })
+  });
+  const data = await res.json();
+  if (data.success) {
+    toast(`Request marked as ${status}`);
+    closeModal('req-status-modal');
+    loadRequests();
+  } else {
+    toast(data.error || 'Error updating', 'error');
+  }
+}
+
+// ── Hospitals ──────────────────────────────────────────────
+async function loadHospitals() {
+  const res = await fetch(`${API}/hospitals`);
+  const { data } = await res.json();
+  const typeColors = { Teaching:'bg-blue-500/10 text-blue-400', Specialty:'bg-purple-500/10 text-purple-400', General:'bg-emerald-500/10 text-emerald-400', Emergency:'bg-cr-500/10 text-cr-500', Clinic:'bg-amber-500/10 text-amber-400' };
+  document.getElementById('hospitals-grid').innerHTML = data.map(h => `
+    <div class="card p-6">
+      <div class="flex items-start justify-between mb-3">
+        <div class="w-10 h-10 rounded-full bg-cr-500/10 flex items-center justify-center flex-shrink-0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ED1B24" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12h6M12 9v6"/></svg>
+        </div>
+        <span class="badge text-xs px-2 py-1 rounded ${typeColors[h.hospital_type]||'badge-medium'}">${h.hospital_type}</span>
+      </div>
+      <h3 class="display font-bold text-white text-lg leading-tight">${h.name}</h3>
+      <p class="text-sl-400 text-xs mt-1">${h.city}</p>
+      <p class="text-sl-500 text-xs mt-2 line-clamp-2">${h.address}</p>
+      <div class="mt-4 pt-4 border-t hairline mono text-xs text-sl-400">
+        <div>${h.phone}</div>
+        ${h.email ? `<div class="mt-1">${h.email}</div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ── Close modals on backdrop click ─────────────────────────
+document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
+  backdrop.addEventListener('click', e => {
+    if (e.target === backdrop) backdrop.classList.remove('open');
+  });
+});
+
+// ── Init ───────────────────────────────────────────────────
+(async () => {
+  await loadRefData();
+  loadDashboard();
+})();
+</script>
+</body>
+</html>
