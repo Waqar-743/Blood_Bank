@@ -12,7 +12,10 @@
       "PowerShell(Start-Sleep -Seconds 2; Invoke-WebRequest -Uri \"http://localhost:3000/api/stats\" -UseBasicParsing | Select-Object -ExpandProperty Content | ConvertFrom-Json | Select-Object -ExpandProperty data | Select-Object totalDonors, totalDonations, pendingRequests, totalUnits)",
       "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/api/stats\" -UseBasicParsing -ErrorAction SilentlyContinue; if \\($r\\) { $r.Content.Substring\\(0,300\\) } else { \"Server not responding on 3000\" })",
       "PowerShell(Get-ChildItem -Path \"D:\\\\dell\\\\Downloads\\\\Nutech_BloodBank\" -Recurse -File | Where-Object { $_.FullName -notmatch \"node_modules|\\\\.db$|npm-cache\" } | Select-Object -ExpandProperty FullName | Sort-Object)",
-      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/api/donors?active=1\" -UseBasicParsing; $data = $r.Content | ConvertFrom-Json; \"Donors: $\\($data.data.Count\\)\"; $r2 = Invoke-WebRequest -Uri \"http://localhost:3000/api/inventory\" -UseBasicParsing; $d2 = $r2.Content | ConvertFrom-Json; \"Inventory: $\\($d2.data.Count\\)\"; $r3 = Invoke-WebRequest -Uri \"http://localhost:3000/api/requests\" -UseBasicParsing; $d3 = $r3.Content | ConvertFrom-Json; \"Requests: $\\($d3.data.Count\\)\")"
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000/api/donors?active=1\" -UseBasicParsing; $data = $r.Content | ConvertFrom-Json; \"Donors: $\\($data.data.Count\\)\"; $r2 = Invoke-WebRequest -Uri \"http://localhost:3000/api/inventory\" -UseBasicParsing; $d2 = $r2.Content | ConvertFrom-Json; \"Inventory: $\\($d2.data.Count\\)\"; $r3 = Invoke-WebRequest -Uri \"http://localhost:3000/api/requests\" -UseBasicParsing; $d3 = $r3.Content | ConvertFrom-Json; \"Requests: $\\($d3.data.Count\\)\")",
+      "Bash(node --check \"d:/dell/Downloads/Nutech_BloodBank/backend/server.js\")",
+      "Bash(node --check \"d:/dell/Downloads/Nutech_BloodBank/backend/database.js\")",
+      "Bash(npm run *)"
     ]
   }
 }
