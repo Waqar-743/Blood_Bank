@@ -2,13 +2,6 @@
 
 A full-stack Blood Bank Management System built for the CS160 Database Systems Project-Based Learning module at the National University of Technology (NUTech). The system combines a public landing page, an administrative dashboard, and a RESTful API backed by a normalized SQLite database to coordinate donors, donations, hospital requests, and inventory in a single workflow.
 
-## Live Deployment
-
-- Public landing page: https://waqar-743.github.io/Blood_Bank/
-- Admin login (static UI): https://waqar-743.github.io/Blood_Bank/frontend/admin/login.html
-- Source repository: https://github.com/Waqar-743/Blood_Bank
-
-The static frontend is served from GitHub Pages and is automatically deployed by the CI/CD pipeline on every push to the default branch. The Express API runs locally and can be pointed at by the admin UI through the `apiBase` configuration described below.
 
 ## Highlights
 
