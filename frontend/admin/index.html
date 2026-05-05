@@ -8,30 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-<script>
-tailwind.config = {
-  theme: {
-    extend: {
-      colors: {
-        /* Crimson scale (kept as `cr` for back-compat) */
-        cr:  { 50:'#fef2f2', 400:'#C8323A', 500:'#A41E26', 600:'#8B1820', 700:'#6B1118' },
-        /* Warm ink scale (kept as `ink` for back-compat). 950 = page bg, 900 = panel, 850 = card, 800 = border accent */
-        ink: { 950:'#0E0B08', 900:'#15110D', 850:'#1A1612', 800:'#2A2521', 700:'#3D3833', 600:'#5A544D' },
-        /* Slate -> warm sand (kept as `sl` for back-compat) */
-        sl:  { 200:'#E2D8C2', 300:'#C4BBA8', 400:'#8C857B', 500:'#6F6A62' },
-        cream: { 50:'#FDFBF7', 100:'#F8F4EC', 200:'#EFE8DA' },
-      },
-      fontFamily: {
-        display:['"Fraunces"','serif'],
-        sans:['"Geist"','-apple-system','sans-serif'],
-        mono:['"Geist Mono"','monospace'],
-      }
-    }
-  }
-}
-</script>
+<link rel="stylesheet" href="../../assets/tailwind.css"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js" defer></script>
 <style>
   :root {
     --cream:#FDFBF7; --cream-warm:#EFE8DA;

@@ -8,28 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="preload" as="image" href="image/Hope.jpg" fetchpriority="high"/>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          cream:   { 50:'#FDFBF7', 100:'#F8F4EC', 200:'#EFE8DA', 300:'#E2D8C2' },
-          ink:     { 950:'#0E0B08', 900:'#1A1612', 800:'#2A2521', 700:'#3D3833', 600:'#5A544D' },
-          sand:    { 400:'#8C857B', 500:'#6F6A62', 600:'#4F4B45' },
-          crimson: { 400:'#E04149', 500:'#D02830', 600:'#A41E26', 700:'#6B1118', 800:'#3E0A0E' },
-          teal:    { 300:'#5FC4BD', 400:'#3DB3AB', 500:'#2BA8A0', 600:'#1F8B85', 700:'#155F5B' },
-          sage:    { 500:'#6B8E76' },
-        },
-        fontFamily: {
-          serif:   ['"Fraunces"','"Instrument Serif"','serif'],
-          sans:    ['"Geist"','-apple-system','sans-serif'],
-          mono:    ['"Geist Mono"','monospace'],
-        },
-      }
-    }
-  }
-</script>
+<link rel="stylesheet" href="assets/tailwind.css"/>
 <style>
   :root{
     --cream:#FDFBF7; --cream-2:#F8F4EC; --cream-3:#EFE8DA;
@@ -304,6 +283,30 @@
   .ulink::after { content:''; position:absolute; left:0; right:0; bottom:-3px; height:1px; background: currentColor; transform: scaleX(0); transform-origin: left center; transition: transform .6s var(--ease); }
   .ulink:hover::after { transform: scaleX(1); }
 
+  /* === PERF: off-screen sections render cheaper === */
+  section { content-visibility: auto; contain-intrinsic-size: 1px 900px; }
+
+  /* === MOBILE TUNING === */
+  @media (max-width: 640px) {
+    /* Tame oversized serif display headings on small phones */
+    h1.serif, h2.serif { font-size: 44px !important; line-height: 1.02 !important; }
+    /* Tighten section vertical rhythm */
+    section { padding-top: 64px !important; padding-bottom: 64px !important; }
+    /* Disable expensive blur on reveal — saves paint cost on low-end phones */
+    .reveal, .reveal-l, .reveal-r, .stagger > * { filter: none !important; }
+    /* Reduce backdrop-filter cost on nav */
+    .nav-pill { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    /* Hide grain overlay on mobile (paint cost, no visual gain at small size) */
+    .grain-fx { display: none; }
+  }
+
+  /* Respect reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track, .marquee-rev, .pulse-dot, .heartbeat, .float-y,
+    .spin-slow, .wave, .ping, .ldr-drop { animation: none !important; }
+    .reveal, .reveal-l, .reveal-r, .stagger > * { transition: none !important; opacity: 1 !important; transform: none !important; filter: none !important; }
+  }
+
   /* === PAGE LOADER === */
   #page-loader {
     position: fixed; inset: 0; z-index: 9999;
@@ -415,7 +418,7 @@
 <section id="top" class="relative pt-36 pb-32 lg:pt-44 lg:pb-40 overflow-hidden">
   <!-- Editorial photo backdrop -->
   <div class="bg-photo">
-    <img src="image/Hope.jpg" alt=""/>
+    <img src="image/Hope.jpg" alt="" fetchpriority="high" decoding="async"/>
   </div>
   <!-- Soft mesh background -->
   <div class="absolute inset-0 pointer-events-none z-[1]">
@@ -592,7 +595,14 @@
       <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-crimson-500"></span> CRITICAL &lt; 25%</div>
       <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> LOW 25–50%</div>
       <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-sage-500"></span> STABLE &gt; 50%</div>
-      <div class="ml-auto">UNITS · WHOLE BLOOD EQUIVALENT</div>
+      <div class="ml-auto hidden md:flex items-center gap-2 text-sand-500" aria-label="Reserve indicator">
+        <svg width="14" height="18" viewBox="0 0 24 30" fill="none" aria-hidden="true">
+          <path d="M12 2 C12 2, 3 14, 3 20 a9 9 0 0 0 18 0 C21 14, 12 2, 12 2 Z"
+                fill="rgba(208,40,48,0.15)" stroke="#A41E26" stroke-width="1.4"/>
+          <ellipse cx="9" cy="16" rx="1.4" ry="3" fill="#fff" opacity="0.5"/>
+        </svg>
+        <span>LIVE RESERVE INDEX</span>
+      </div>
     </div>
 
     <div id="dropsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-12 mt-14 stagger reveal"></div>
@@ -606,13 +616,13 @@
           <div class="text-sand-500 text-[12px] mt-3 mono tracking-wider">+184 SINCE MIDNIGHT</div>
         </div>
       </div>
-      <div class="col-span-6 md:col-span-3 lg:col-span-2 bezel">
+      <div class="hidden sm:block col-span-6 md:col-span-3 lg:col-span-2 bezel">
         <div class="bezel-inner p-6 h-full">
           <div class="eyebrow mb-5">Nodes</div>
           <div class="serif font-light text-ink-950 text-[44px] leading-none">47<span class="text-sand-400">/47</span></div>
         </div>
       </div>
-      <div class="col-span-6 md:col-span-3 lg:col-span-2 bezel">
+      <div class="hidden sm:block col-span-6 md:col-span-3 lg:col-span-2 bezel">
         <div class="bezel-inner p-6 h-full">
           <div class="eyebrow mb-5">Avg temp</div>
           <div class="serif font-light text-ink-950 text-[44px] leading-none">4.1<span class="text-base text-sand-500 ml-1">°C</span></div>
@@ -649,7 +659,7 @@
           <div class="serif-italic text-[22px] mt-1 leading-tight">Where every drop matters most.</div>
         </div>
       </div>
-      <div class="col-span-12 md:col-span-4 photo-frame h-[280px] bezel-inner">
+      <div class="hidden sm:block col-span-12 md:col-span-4 photo-frame h-[280px] bezel-inner">
         <img src="image/Group-dOCTOR.jpg" alt="Medical team" loading="lazy" decoding="async"/>
         <div class="caption">
           <div class="mono text-[10px] tracking-[0.25em] opacity-80">FIELD TEAM</div>
@@ -1393,8 +1403,8 @@
     const fill   = document.getElementById('ldr-fill');
     if (!loader) return;
 
-    const MIN_MS  = 900;
-    const MAX_MS  = 8000;
+    const MIN_MS  = 450;
+    const MAX_MS  = 3500;
     const start   = Date.now();
     let dismissed = false;
 
@@ -1415,8 +1425,11 @@
       setTimeout(() => loader.classList.add('done'), wait + 300);
     }
 
-    // Track every <img> on the page
-    const imgs = Array.from(document.querySelectorAll('img'));
+    // Track only eager (above-the-fold) images — lazy images won't load until scroll
+    // and would otherwise stall the loader until MAX_MS.
+    const imgs = Array.from(document.querySelectorAll('img')).filter(
+      img => img.loading !== 'lazy' && !img.hasAttribute('data-skip-loader')
+    );
     if (!imgs.length) { dismiss(); return; }
 
     let settled = 0;
