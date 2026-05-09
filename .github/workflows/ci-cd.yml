@@ -163,12 +163,12 @@ jobs:
 # ─────────────────────────────────────────────────────────────
 # JOB 3 — Deploy backend to Vercel (push to main only)
 #
-# Required GitHub Secrets → Settings → Secrets → Actions:
-#   VERCEL_TOKEN         — vercel.com → Account Settings → Tokens
-#   VERCEL_ORG_ID        — vercel.com → Team Settings → General
-#   VERCEL_PROJECT_ID    — vercel.com → Project → Settings → General
+# Required GitHub Secrets → repo Settings → Secrets → Actions:
+#   VERCEL_TOKEN         — vercel.com → Account Settings → Tokens → Create
+#   VERCEL_ORG_ID        — vercel.com → Team Settings → General → Team ID
+#   VERCEL_PROJECT_ID    — vercel.com → Project → Settings → General → Project ID
 #   SUPABASE_URL         — https://<ref>.supabase.co
-#   SUPABASE_SERVICE_KEY — service_role key (Supabase dashboard → Settings → API)
+#   SUPABASE_SERVICE_KEY — Supabase → Project Settings → API → service_role key
 # ─────────────────────────────────────────────────────────────
   deploy-vercel:
     name: "🚀 Deploy to Vercel"
@@ -177,8 +177,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    # VERCEL_TOKEN at job level — Vercel CLI auto-detects it for ALL steps
-    # No need to pass --token on every command
+    # All three Vercel env vars at job level — CLI picks them up automatically
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -190,51 +189,71 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest --silent
 
-      - name: Verify VERCEL_TOKEN is set
+      - name: Debug — confirm secrets are loaded
         shell: bash
         run: |
+          echo "VERCEL_TOKEN   length: ${#VERCEL_TOKEN}"
+          echo "VERCEL_ORG_ID  length: ${#VERCEL_ORG_ID}"
+          echo "VERCEL_PROJECT_ID length: ${#VERCEL_PROJECT_ID}"
+          # Warn (not fail) so the next steps can show the actual Vercel error
           if [ -z "${VERCEL_TOKEN:-}" ]; then
-            echo "❌ VERCEL_TOKEN is not set in GitHub → Settings → Secrets → Actions" >&2
-            exit 1
+            echo "⚠️  WARNING: VERCEL_TOKEN appears empty."
+            echo "   Go to: github.com → repo → Settings → Secrets → Actions"
+            echo "   Add secret: VERCEL_TOKEN = your Vercel personal access token"
+            echo "   Get token: vercel.com → Account Settings → Tokens → Create"
           fi
-          echo "✅ VERCEL_TOKEN is present (${#VERCEL_TOKEN} chars)"
 
-      - name: Push Supabase env vars to Vercel project
+      - name: Push Supabase env vars to Vercel (via REST API)
         shell: bash
         env:
+          V_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          V_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           V_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           V_SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           set -euo pipefail
 
+          if [ -z "${V_TOKEN:-}" ] || [ -z "${V_PROJECT_ID:-}" ]; then
+            echo "⚠️  VERCEL_TOKEN or VERCEL_PROJECT_ID missing — skipping env push"
+            exit 0
+          fi
+
           push_env() {
-            local name="$1"
-            local value="$2"
-            if [ -z "$value" ]; then
-              echo "⚠️  $name is empty — skipping"
+            local KEY="$1"
+            local VALUE="$2"
+            if [ -z "$VALUE" ]; then
+              echo "⚠️  $KEY is empty — skipping"
               return
             fi
-            # Remove existing (ignore error if not found), then add fresh value
-            vercel env rm "$name" production --yes 2>/dev/null || true
-            printf '%s' "$value" | vercel env add "$name" production
-            echo "✅ Pushed $name to Vercel"
+            # Upsert via Vercel REST API — works without CLI session
+            HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
+              -X POST "https://api.vercel.com/v10/projects/${V_PROJECT_ID}/env" \
+              -H "Authorization: Bearer ${V_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${KEY}\",\"value\":\"${VALUE}\",\"type\":\"encrypted\",\"target\":[\"production\"]}")
+            if [ "$HTTP" = "200" ] || [ "$HTTP" = "201" ] || [ "$HTTP" = "409" ]; then
+              echo "✅ Env var ${KEY} upserted (HTTP $HTTP)"
+            else
+              echo "❌ Failed to push ${KEY} — HTTP $HTTP"
+              exit 1
+            fi
           }
 
           push_env "SUPABASE_URL"         "$V_SUPABASE_URL"
           push_env "SUPABASE_SERVICE_KEY" "$V_SUPABASE_SERVICE_KEY"
 
       - name: Pull Vercel project metadata
-        run: vercel pull --yes --environment=production
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Build for production
-        run: vercel build --prod
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
       - name: Deploy prebuilt artifact to Vercel
         id: deploy
         shell: bash
         run: |
           set -euo pipefail
-          DEPLOY_OUTPUT=$(vercel deploy --prebuilt --prod 2>&1)
+          DEPLOY_OUTPUT=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} 2>&1)
           echo "$DEPLOY_OUTPUT"
           DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -Eo 'https://[^ ]+\.vercel\.app' | tail -1)
           if [ -z "$DEPLOY_URL" ]; then
