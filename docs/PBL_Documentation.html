@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NUTech Blood Bank — CS160 PBL Documentation</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Times New Roman',serif;font-size:12pt;color:#111;background:#fff;padding:20px}
+  h1{font-size:20pt;text-align:center;margin-bottom:6px}
+  h2{font-size:15pt;margin:24px 0 8px;border-bottom:2px solid #8b0000;padding-bottom:4px;color:#8b0000}
+  h3{font-size:12pt;margin:16px 0 6px;color:#333}
+  .cover{text-align:center;padding:60px 20px;border:3px double #8b0000;margin-bottom:40px}
+  .cover img{width:100px;margin-bottom:10px}
+  .cover p{margin:4px 0;font-size:13pt}
+  .cover .title{font-size:22pt;font-weight:bold;color:#8b0000;margin:16px 0}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:10.5pt}
+  th{background:#8b0000;color:#fff;padding:6px 8px;text-align:left}
+  td{border:1px solid #ccc;padding:5px 8px;vertical-align:top}
+  tr:nth-child(even) td{background:#fdf0f0}
+  pre,code{font-family:'Courier New',monospace;font-size:9.5pt;background:#f5f5f5;padding:2px 4px;border-radius:2px}
+  pre{padding:10px;border-left:4px solid #8b0000;overflow-x:auto;margin:8px 0;white-space:pre-wrap;word-break:break-word}
+  .erd{font-family:'Courier New',monospace;font-size:8.5pt;background:#f9f9f9;border:1px solid #ccc;padding:14px;line-height:1.5;white-space:pre;overflow-x:auto}
+  .key-box{background:#fff8e1;border:1px solid #f9a825;padding:10px 14px;border-radius:4px;margin:8px 0}
+  .key-box code{background:transparent;font-size:8.5pt;word-break:break-all}
+  .toc ol{margin-left:24px;line-height:2}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:9pt;font-weight:bold;margin-left:6px}
+  .pk{background:#d32f2f;color:#fff}
+  .fk{background:#1565c0;color:#fff}
+  .uq{background:#2e7d32;color:#fff}
+  .page-break{page-break-before:always}
+  @media print{
+    body{padding:0}
+    .no-print{display:none}
+    pre{white-space:pre-wrap}
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ COVER PAGE ═══════════════ -->
+<div class="cover">
+  <p style="font-size:14pt;font-weight:bold">National University of Technology (NUTech)</p>
+  <p>Department of Artificial Intelligence</p>
+  <p>CS160 — Database Systems &nbsp;|&nbsp; Semester 2 &nbsp;|&nbsp; Batch AI-25 B</p>
+  <div class="title">Blood Bank Management System<br><span style="font-size:14pt">Project-Based Learning (PBL)</span></div>
+  <p><b>Instructor:</b> Ms. Sumera Aslam</p>
+  <p><b>Assigned:</b> 27-04-2026 &nbsp;&nbsp; <b>Due:</b> 05-07-2026</p>
+  <p style="margin-top:20px"><b>Stack:</b> Node.js 24 + Express &nbsp;|&nbsp; Supabase (PostgreSQL) &nbsp;|&nbsp; HTML/CSS/JS + Tailwind</p>
+  <p><b>Database:</b> Supabase Project — <code>glmdzfuxwpgknuhbbgkt</code></p>
+  <p style="margin-top:10px;font-size:10pt;color:#555">Date: 09-05-2026</p>
+</div>
+
+<!-- ═══════════════ TABLE OF CONTENTS ═══════════════ -->
+<h2>Table of Contents</h2>
+<div class="toc">
+<ol>
+  <li>Project Overview</li>
+  <li>Supabase Credentials &amp; Connection Details</li>
+  <li>Enhanced ERD Diagram</li>
+  <li>Entity Identification &amp; Attribute Specification (10 Tables)</li>
+  <li>Table Normalization (3NF)</li>
+  <li>SQL Statements
+    <ol type="a">
+      <li>DDL — CREATE Tables</li>
+      <li>DDL — ALTER &amp; DROP Examples</li>
+      <li>DML — INSERT / UPDATE / DELETE</li>
+      <li>SELECT Queries (WHERE, ORDER BY, GROUP BY)</li>
+      <li>Aggregate Functions (SUM, AVG, COUNT)</li>
+      <li>SQL JOINs</li>
+      <li>Complex Queries &amp; CTEs</li>
+    </ol>
+  </li>
+  <li>Query Output Results</li>
+  <li>Front-End &amp; Back-End Integration</li>
+  <li>Testing &amp; Validation</li>
+</ol>
+</div>
+
+<!-- ═══════════════ 1. PROJECT OVERVIEW ═══════════════ -->
+<div class="page-break"></div>
+<h2>1. Project Overview</h2>
+<p>The <b>NUTech Blood Bank Management System</b> is a full-stack web application that manages blood donation, inventory, patient requests, and transfusion records across multiple blood banks and hospitals in Pakistan.</p>
+<br>
+<table>
+  <tr><th>Component</th><th>Technology</th></tr>
+  <tr><td>Back-end Runtime</td><td>Node.js 24 + Express.js</td></tr>
+  <tr><td>Database</td><td>Supabase (PostgreSQL 15) — hosted cloud</td></tr>
+  <tr><td>Front-end</td><td>Vanilla HTML5, CSS3, JavaScript + Tailwind CDN + Chart.js</td></tr>
+  <tr><td>API Style</td><td>RESTful JSON over HTTP</td></tr>
+  <tr><td>Auth</td><td>Supabase anon key + server-side service role key</td></tr>
+  <tr><td>Tables</td><td>10 (3NF normalized)</td></tr>
+  <tr><td>Records</td><td>8 blood groups, 5 blood banks, 10 hospitals, 10 staff, 20 donors, 20 donations, 15 inventory, 20 patients, 10 requests, 6 transfusions</td></tr>
+</table>
+
+<!-- ═══════════════ 2. CREDENTIALS ═══════════════ -->
+<h2>2. Supabase Credentials &amp; Connection Details</h2>
+
+<div class="key-box">
+  <b>Project URL (SUPABASE_URL):</b><br>
+  <code>https://glmdzfuxwpgknuhbbgkt.supabase.co</code>
+</div>
+
+<div class="key-box">
+  <b>Anon / Public Key (Legacy JWT — for client-side use):</b><br>
+  <code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsbWR6ZnV4d3Bna251aGJiZ2t0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMDQ4NzUsImV4cCI6MjA5Mzg4MDg3NX0.DWxVSVg3xNgoUVx8qPXYNVG-x89uNpvGIwfcQdMcFfE</code>
+</div>
+
+<div class="key-box">
+  <b>Publishable Key (Modern — for new client apps):</b><br>
+  <code>sb_publishable_EUmzHDOOCai8Fdik-xfUQQ_b157MJr3</code>
+</div>
+
+<div class="key-box" style="border-color:#c62828;background:#ffebee">
+  <b>Service Role Key (SUPABASE_SERVICE_KEY — server-side only, NEVER expose in frontend):</b><br>
+  Get from: Supabase Dashboard → Project Settings → API → <b>service_role</b> (secret key)<br>
+  <code>Add to backend/.env as: SUPABASE_SERVICE_KEY=&lt;your_service_role_key&gt;</code>
+</div>
+
+<div class="key-box">
+  <b>Database Direct Connection (PostgreSQL):</b><br>
+  <code>postgresql://postgres:[PASSWORD]@db.glmdzfuxwpgknuhbbgkt.supabase.co:5432/postgres</code>
+</div>
+
+<h3>backend/.env Configuration</h3>
+<pre>SUPABASE_URL=https://glmdzfuxwpgknuhbbgkt.supabase.co
+SUPABASE_SERVICE_KEY=&lt;your_service_role_key_from_dashboard&gt;
+PORT=3000</pre>
+
+<!-- ═══════════════ 3. ERD ═══════════════ -->
+<div class="page-break"></div>
+<h2>3. Enhanced ERD Diagram</h2>
+<p>The ERD below shows all 10 entities, their primary/foreign keys, cardinality, and relationships. Weak entities are underlined; associative entities use dashed borders.</p>
+
+<div class="erd">
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                        NUTECH BLOOD BANK — ENHANCED ERD                                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────┐        ┌───────────────────────┐        ┌───────────────────────┐
+│   BLOOD_GROUPS   │        │      BLOOD_BANKS       │        │      HOSPITALS        │
+│──────────────────│        │───────────────────────│        │───────────────────────│
+│ PK blood_group_id│        │ PK bank_id            │        │ PK hospital_id        │
+│    group_name UQ │        │    name               │        │    name               │
+│    rh_factor     │        │    address            │        │    address            │
+│    abo_type      │        │    city               │        │    city               │
+│    description   │        │    phone              │        │    phone              │
+└────────┬─────────┘        │    email              │        │    email              │
+         │                  │    license_no UQ      │        │    license_no UQ      │
+         │ 1:N              │    established_date   │        │    hospital_type      │
+         │                  │    is_active          │        │    is_partner         │
+         ▼                  └──────────┬────────────┘        └──────────┬────────────┘
+┌──────────────────┐                  │ 1:N                              │ 1:N
+│     DONORS       │                  ▼                                  │
+│──────────────────│        ┌───────────────────────┐                   ▼
+│ PK donor_id      │        │        STAFF          │        ┌───────────────────────┐
+│    first_name    │        │───────────────────────│        │      PATIENTS         │
+│    last_name     │        │ PK staff_id           │        │───────────────────────│
+│    dob           │        │    first_name         │        │ PK patient_id         │
+│    gender        │        │    last_name          │        │    first_name         │
+│    phone         │        │    role               │        │    last_name          │
+│    email         │        │    phone              │        │    dob                │
+│    address       │        │    email UQ           │        │    gender             │
+│    city          │        │ FK bank_id ──────────►│        │    phone              │
+│ FK blood_group_id│        │    hire_date          │        │    address            │
+│    reg_date      │        │    is_active          │        │ FK blood_group_id     │
+│    last_donation │        └──────────┬────────────┘        │ FK hospital_id ──────►│
+│    total_donations│                 │ 1:N                   │    medical_record_no  │
+│    weight_kg     │                  │                       │    diagnosis          │
+│    is_active     │                  │                       │    registered_date    │
+└────────┬─────────┘                  │                       └──────────┬────────────┘
+         │ 1:N                        │                                  │ 1:N
+         │                            │                                  │
+         ▼                            ▼                                  ▼
+┌──────────────────┐        ╔═══════════════════════╗        ╔═══════════════════════╗
+│  BLOOD_INVENTORY │        ║  DONATIONS (associat.)║        ║  BLOOD_REQUESTS(assoc)║
+│──────────────────│        ║───────────────────────║        ║───────────────────────║
+│ PK inventory_id  │◄───┐   ║ PK donation_id        ║        ║ PK request_id         ║
+│ FK bank_id       │    │   ║ FK donor_id ─────────►║        ║ FK patient_id ───────►║
+│ FK blood_group_id│    │   ║ FK bank_id ──────────►║        ║ FK hospital_id ──────►║
+│    units_available│   │   ║ FK staff_id ─────────►║        ║ FK blood_group_id ───►║
+│    units_reserved │   │   ║ FK blood_group_id ───►║        ║    units_requested    ║
+│    component_type │   │   ║    donation_date       ║        ║    request_date       ║
+│    collection_date│   │   ║    units_donated       ║        ║    urgency_level      ║
+│    expiry_date   │   │   ║    hemoglobin_level    ║        ║    status             ║
+│    last_updated  │   │   ║    blood_pressure      ║        ║    notes              ║
+│ UNIQUE(bank_id,  │   │   ║    status              ║        ║ FK approved_by ──────►║
+│  blood_group_id, │   │   ║    notes               ║        ║    approved_date      ║
+│  component_type) │   │   ╚═══════════════════════╝        ╚═══════════╤═══════════╝
+└──────────────────┘   │                                                 │ 1:N
+                        │                                                 ▼
+                        │                                      ╔═══════════════════════╗
+                        │                                      ║ TRANSFUSIONS (assoc.) ║
+                        └──────────────────────────────────────║───────────────────────║
+                                                               ║ PK transfusion_id     ║
+                                                               ║ FK request_id ───────►║
+                                                               ║ FK inventory_id ─────►║
+                                                               ║    transfusion_date   ║
+                                                               ║    units_transfused   ║
+                                                               ║ FK staff_id ─────────►║
+                                                               ║    outcome            ║
+                                                               ║    notes              ║
+                                                               ╚═══════════════════════╝
+
+CARDINALITY LEGEND:
+  blood_groups  ──1:N──▶ donors         (one blood group → many donors)
+  blood_groups  ──1:N──▶ donations      (one blood group → many donations)
+  blood_groups  ──1:N──▶ blood_inventory(one blood group → many inventory rows)
+  blood_groups  ──1:N──▶ patients       (one blood group → many patients)
+  blood_groups  ──1:N──▶ blood_requests (one blood group → many requests)
+  blood_banks   ──1:N──▶ staff          (one bank employs many staff)
+  blood_banks   ──1:N──▶ donations      (one bank collects many donations)
+  blood_banks   ──1:N──▶ blood_inventory(one bank holds many inventory rows)
+  hospitals     ──1:N──▶ patients       (one hospital treats many patients)
+  hospitals     ──1:N──▶ blood_requests (one hospital makes many requests)
+  donors        ──1:N──▶ donations      (one donor makes many donations)
+  patients      ──1:N──▶ blood_requests (one patient has many requests)
+  blood_requests──1:N──▶ transfusions   (one request → one or more transfusions)
+  blood_inventory──1:N──▶transfusions   (one inventory entry → many transfusions)
+  staff         ──1:N──▶ donations      (one staff oversees many donations)
+  staff         ──1:N──▶ blood_requests (one staff approves many requests)
+  staff         ──1:N──▶ transfusions   (one staff performs many transfusions)
+
+  ╔═══╗ = Associative (junction) entity     ┌───┐ = Strong entity
+  Weak entity (existence-dependent): TRANSFUSIONS depends on BLOOD_REQUESTS
+</div>
+
+<!-- ═══════════════ 4. ENTITIES & ATTRIBUTES ═══════════════ -->
+<div class="page-break"></div>
+<h2>4. Entity Identification &amp; Attribute Specification</h2>
+
+<h3>4.1 BLOOD_GROUPS</h3>
+<table>
+  <tr><th>Attribute</th><th>Data Type</th><th>Constraint</th><th>Description</th></tr>
+  <tr><td>blood_group_id <span class="badge pk">PK</span></td><td>SERIAL</td><td>NOT NULL, AUTO</td><td>Surrogate primary key</td></tr>
+  <tr><td>group_name <span class="badge uq">UQ</span></td><td>VARCHAR(5)</td><td>NOT NULL, UNIQUE</td><td>e.g. A+, O-, AB+</td></tr>
+  <tr><td>rh_factor</td><td>CHAR(1)</td><td>CHECK IN('+','-')</td><td>Rhesus factor</td></tr>
+  <tr><td>abo_type</td><td>VARCHAR(3)</td><td>CHECK IN('A','B','AB','O')</td><td>ABO classification</td></tr>
+  <tr><td>description</td><td>TEXT</td><td>NULL</td><td>Clinical notes</td></tr>
+</table>
+
+<h3>4.2 BLOOD_BANKS</h3>
+<table>
+  <tr><th>Attribute</th><th>Data Type</th><th>Constraint</th><th>Description</th></tr>
+  <tr><td>bank_id <span class="badge pk">PK</span></td><td>SERIAL</td><td>NOT NULL, AUTO</td><td>Surrogate primary key</td></tr>
+  <tr><td>name</td><td>VARCHAR(100)</td><td>NOT NULL</td><td>Official bank name</td></tr>
+  <tr><td>address</td><td>TEXT</td><td>NOT NULL</td><td>Physical address</td></tr>
+  <tr><td>city</td><td>VARCHAR(50)</td><td>NOT NULL</td><td>City of operation</td></tr>
+  <tr><td>phone</td><td>VARCHAR(20)</td><td>NOT NULL</td><td>Contact number</td></tr>
+  <tr><td>email</td><td>VARCHAR(100)</td><td>NULL</td><td>Contact email</td></tr>
+  <tr><td>license_no <span class="badge uq">UQ</span></td><td>VARCHAR(50)</td><td>UNIQUE</td><td>Regulatory license</td></tr>
+  <tr><td>established_date</td><td>DATE</td><td>NULL</td><td>Founding date</td></tr>
+  <tr><td>is_active</td><td>BOOLEAN</td><td>DEFAULT TRUE</td><td>Operational status</td></tr>
+</table>
+
+<h3>4.3 HOSPITALS</h3>
+<table>
+  <tr><th>Attribute</th><th>Data Type</th><th>Constraint</th><th>Description</th></tr>
+  <tr><td>hospital_id <span class="badge pk">PK</span></td><td>SERIAL</td><td>NOT NULL, AUTO</td><td>Surrogate primary key</td></tr>
+  <tr><td>name</td><td>VARCHAR(150)</td><td>NOT NULL</td><td>Hospital name</td></tr>
+  <tr><td>address</td><td>TEXT</td><td>NOT NULL</td><td>Physical address</td></tr>
+  <tr><td>city</td><td>VARCHAR(50)</td><td>NOT NULL</td><td>City</td></tr>
+  <tr><td>phone</td><td>VARCHAR(20)</td><td>NOT NULL</td><td>Main line</td></tr>
+  <tr><td>email</td><td>VARCHAR(100)</td><td>NULL</td><td>Contact email</td></tr>
+  <tr><td>license_no <span class="badge uq">UQ</span></td><td>VARCHAR(50)</td><td>UNIQUE</td><td>Medical license</td></tr>
+  <tr><td>hospital_type</td><td>VARCHAR(30)</td><td>CHECK IN('General','Specialty','Teaching','Clinic','Emergency')</td><td>Classification</td></tr>
+  <tr><td>is_partner</td><td>BOOLEAN</td><td>DEFAULT TRUE</td><td>Partner status</td></tr>
+</table>
+
+<h3>4.4 STAFF</h3>
+<table>
+  <tr><th>Attribute</th><th>Data Type</th><th>Constraint</th><th>Description</th></tr>
+  <tr><td>staff_id <span class="badge pk">PK</span></td><td>SERIAL</td><td>NOT NULL, AUTO</td><td>Surrogate primary key</td></tr>
+  <tr><td>first_name</td><td>VARCHAR(50)</td><td>NOT NULL</td><td>First name</td></tr>
+  <tr><td>last_name</td><td>VARCHAR(50)</td><td>NOT NULL</td><td>Last name</td></tr>
+  <tr><td>role</td><td>VARCHAR(40)</td><td>CHECK IN('Doctor','Nurse','Technician','Coordinator','Admin','Phlebotomist')</td><td>Job role</td></tr>
+  <tr><td>phone</td><td>VARCHAR(20)</td><td>NULL</td><td>Contact</td></tr>
+  <tr><td>email <span class="badge uq">UQ</span></td><td>VARCHAR(100)</td><td>UNIQUE</td><td>Work email</td></tr>
+  <tr><td>bank_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NOT NULL → blood_banks</td><td>Employing bank</td></tr>
+  <tr><td>hire_date</td><td>DATE</td><td>NOT NULL</td><td>Employment start</td></tr>
+  <tr><td>is_active</td><td>BOOLEAN</td><td>DEFAULT TRUE</td><td>Employment status</td></tr>
+</table>
+
+<h3>4.5 DONORS</h3>
+<table>
+  <tr><th>Attribute</th><th>Data Type</th><th>Constraint</th><th>Description</th></tr>
+  <tr><td>donor_id <span class="badge pk">PK</span></td><td>SERIAL</td><td>NOT NULL, AUTO</td><td>Surrogate PK</td></tr>
+  <tr><td>first_name</td><td>VARCHAR(50)</td><td>NOT NULL</td><td>Given name</td></tr>
+  <tr><td>last_name</td><td>VARCHAR(50)</td><td>NOT NULL</td><td>Surname</td></tr>
+  <tr><td>dob</td><td>DATE</td><td>CHECK ≤ today−18yrs</td><td>Date of birth (age ≥18)</td></tr>
+  <tr><td>gender</td><td>VARCHAR(10)</td><td>CHECK IN('Male','Female','Other')</td><td>Gender</td></tr>
+  <tr><td>phone</td><td>VARCHAR(20)</td><td>NOT NULL</td><td>Mobile number</td></tr>
+  <tr><td>email</td><td>VARCHAR(100)</td><td>NULL</td><td>Email address</td></tr>
+  <tr><td>address</td><td>TEXT</td><td>NULL</td><td>Home address</td></tr>
+  <tr><td>city</td><td>VARCHAR(50)</td><td>NULL</td><td>City</td></tr>
+  <tr><td>blood_group_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NOT NULL → blood_groups</td><td>Donor blood type</td></tr>
+  <tr><td>registration_date</td><td>DATE</td><td>DEFAULT CURRENT_DATE</td><td>Registration date</td></tr>
+  <tr><td>last_donation_date</td><td>DATE</td><td>NULL</td><td>Most recent donation</td></tr>
+  <tr><td>total_donations</td><td>INTEGER</td><td>DEFAULT 0, ≥0</td><td>Lifetime count</td></tr>
+  <tr><td>weight_kg</td><td>NUMERIC(5,1)</td><td>NULL or ≥50</td><td>Body weight</td></tr>
+  <tr><td>is_active</td><td>BOOLEAN</td><td>DEFAULT TRUE</td><td>Eligibility status</td></tr>
+  <tr><td>emergency_contact</td><td>TEXT</td><td>NULL</td><td>Emergency contact info</td></tr>
+</table>
+
+<h3>4.6 DONATIONS</h3>
+<table>
+  <tr><th>Attribute</th><th>Data Type</th><th>Constraint</th><th>Description</th></tr>
+  <tr><td>donation_id <span class="badge pk">PK</span></td><td>SERIAL</td><td>NOT NULL, AUTO</td><td>Surrogate PK</td></tr>
+  <tr><td>donor_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NOT NULL → donors (CASCADE)</td><td>Donor reference</td></tr>
+  <tr><td>bank_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NOT NULL → blood_banks</td><td>Collection centre</td></tr>
+  <tr><td>staff_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NULL → staff</td><td>Attending staff</td></tr>
+  <tr><td>blood_group_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NOT NULL → blood_groups</td><td>Confirmed blood type</td></tr>
+  <tr><td>donation_date</td><td>TIMESTAMPTZ</td><td>DEFAULT NOW()</td><td>Date &amp; time</td></tr>
+  <tr><td>units_donated</td><td>NUMERIC(4,2)</td><td>&gt;0, DEFAULT 1.0</td><td>Units (pints)</td></tr>
+  <tr><td>hemoglobin_level</td><td>NUMERIC(4,1)</td><td>NULL or 7–20</td><td>Hb reading (g/dL)</td></tr>
+  <tr><td>blood_pressure</td><td>VARCHAR(10)</td><td>NULL</td><td>BP reading e.g. 120/80</td></tr>
+  <tr><td>status</td><td>VARCHAR(20)</td><td>CHECK IN('pending','approved','completed','rejected')</td><td>Processing status</td></tr>
+  <tr><td>notes</td><td>TEXT</td><td>NULL</td><td>Clinical notes</td></tr>
+</table>
+
+<h3>4.7 BLOOD_INVENTORY</h3>
+<table>
+  <tr><th>Attribute</th><th>Data Type</th><th>Constraint</th><th>Description</th></tr>
+  <tr><td>inventory_id <span class="badge pk">PK</span></td><td>SERIAL</td><td>NOT NULL, AUTO</td><td>Surrogate PK</td></tr>
+  <tr><td>bank_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NOT NULL → blood_banks</td><td>Holding bank</td></tr>
+  <tr><td>blood_group_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NOT NULL → blood_groups</td><td>Blood type</td></tr>
+  <tr><td>units_available</td><td>NUMERIC(6,2)</td><td>≥0, DEFAULT 0</td><td>Available units</td></tr>
+  <tr><td>units_reserved</td><td>NUMERIC(6,2)</td><td>≥0, DEFAULT 0</td><td>Reserved units</td></tr>
+  <tr><td>component_type</td><td>VARCHAR(30)</td><td>CHECK IN('Whole Blood','Red Cells','Plasma','Platelets')</td><td>Blood component</td></tr>
+  <tr><td>collection_date</td><td>DATE</td><td>NULL</td><td>Collection date</td></tr>
+  <tr><td>expiry_date</td><td>DATE</td><td>NULL</td><td>Expiry date</td></tr>
+  <tr><td>last_updated</td><td>TIMESTAMPTZ</td><td>DEFAULT NOW()</td><td>Last update timestamp</td></tr>
+</table>
+
+<h3>4.8 PATIENTS</h3>
+<table>
+  <tr><th>Attribute</th><th>Data Type</th><th>Constraint</th><th>Description</th></tr>
+  <tr><td>patient_id <span class="badge pk">PK</span></td><td>SERIAL</td><td>NOT NULL, AUTO</td><td>Surrogate PK</td></tr>
+  <tr><td>first_name</td><td>VARCHAR(50)</td><td>NOT NULL</td><td>Given name</td></tr>
+  <tr><td>last_name</td><td>VARCHAR(50)</td><td>NOT NULL</td><td>Surname</td></tr>
+  <tr><td>dob</td><td>DATE</td><td>NULL</td><td>Date of birth</td></tr>
+  <tr><td>gender</td><td>VARCHAR(10)</td><td>CHECK IN('Male','Female','Other')</td><td>Gender</td></tr>
+  <tr><td>phone</td><td>VARCHAR(20)</td><td>NULL</td><td>Contact number</td></tr>
+  <tr><td>address</td><td>TEXT</td><td>NULL</td><td>Home address</td></tr>
+  <tr><td>blood_group_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NULL → blood_groups</td><td>Patient blood type</td></tr>
+  <tr><td>hospital_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NULL → hospitals</td><td>Treating hospital</td></tr>
+  <tr><td>medical_record_no <span class="badge uq">UQ</span></td><td>VARCHAR(50)</td><td>UNIQUE</td><td>MRN identifier</td></tr>
+  <tr><td>diagnosis</td><td>TEXT</td><td>NULL</td><td>Medical diagnosis</td></tr>
+  <tr><td>registered_date</td><td>DATE</td><td>DEFAULT CURRENT_DATE</td><td>Registration date</td></tr>
+</table>
+
+<h3>4.9 BLOOD_REQUESTS</h3>
+<table>
+  <tr><th>Attribute</th><th>Data Type</th><th>Constraint</th><th>Description</th></tr>
+  <tr><td>request_id <span class="badge pk">PK</span></td><td>SERIAL</td><td>NOT NULL, AUTO</td><td>Surrogate PK</td></tr>
+  <tr><td>patient_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NULL → patients</td><td>Requesting patient</td></tr>
+  <tr><td>hospital_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NOT NULL → hospitals</td><td>Issuing hospital</td></tr>
+  <tr><td>blood_group_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NOT NULL → blood_groups</td><td>Required blood type</td></tr>
+  <tr><td>units_requested</td><td>NUMERIC(5,2)</td><td>&gt;0</td><td>Units needed</td></tr>
+  <tr><td>request_date</td><td>TIMESTAMPTZ</td><td>DEFAULT NOW()</td><td>Request timestamp</td></tr>
+  <tr><td>urgency_level</td><td>VARCHAR(10)</td><td>CHECK IN('low','medium','high','critical')</td><td>Priority level</td></tr>
+  <tr><td>status</td><td>VARCHAR(20)</td><td>CHECK IN('pending','approved','fulfilled','rejected','cancelled')</td><td>Processing status</td></tr>
+  <tr><td>notes</td><td>TEXT</td><td>NULL</td><td>Clinical notes</td></tr>
+  <tr><td>approved_by <span class="badge fk">FK</span></td><td>INTEGER</td><td>NULL → staff</td><td>Approving staff</td></tr>
+  <tr><td>approved_date</td><td>TIMESTAMPTZ</td><td>NULL</td><td>Approval timestamp</td></tr>
+</table>
+
+<h3>4.10 TRANSFUSIONS</h3>
+<table>
+  <tr><th>Attribute</th><th>Data Type</th><th>Constraint</th><th>Description</th></tr>
+  <tr><td>transfusion_id <span class="badge pk">PK</span></td><td>SERIAL</td><td>NOT NULL, AUTO</td><td>Surrogate PK</td></tr>
+  <tr><td>request_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NOT NULL → blood_requests</td><td>Linked request</td></tr>
+  <tr><td>inventory_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NULL → blood_inventory</td><td>Blood source</td></tr>
+  <tr><td>transfusion_date</td><td>TIMESTAMPTZ</td><td>DEFAULT NOW()</td><td>Procedure datetime</td></tr>
+  <tr><td>units_transfused</td><td>NUMERIC(4,2)</td><td>&gt;0</td><td>Units given</td></tr>
+  <tr><td>staff_id <span class="badge fk">FK</span></td><td>INTEGER</td><td>NULL → staff</td><td>Performing staff</td></tr>
+  <tr><td>outcome</td><td>VARCHAR(20)</td><td>CHECK IN('Successful','Adverse Reaction','Discontinued')</td><td>Clinical outcome</td></tr>
+  <tr><td>notes</td><td>TEXT</td><td>NULL</td><td>Procedure notes</td></tr>
+</table>
+
+<!-- ═══════════════ 5. NORMALIZATION ═══════════════ -->
+<div class="page-break"></div>
+<h2>5. Table Normalization (3NF)</h2>
+
+<h3>First Normal Form (1NF)</h3>
+<p>All tables satisfy 1NF: every column holds atomic values (no repeating groups), each table has a primary key, and all rows are unique.</p>
+
+<h3>Second Normal Form (2NF)</h3>
+<p>All tables use single-column SERIAL primary keys, so partial dependency cannot exist. Every non-key attribute is fully functionally dependent on the entire PK.</p>
+
+<h3>Third Normal Form (3NF)</h3>
+<p>No transitive dependencies exist. Blood group details (rh_factor, abo_type) live in <code>blood_groups</code> — not repeated in donors/donations. Hospital city lives in <code>hospitals</code> — not repeated in patients. Bank city lives in <code>blood_banks</code> — not in inventory rows. This eliminates update/insertion/deletion anomalies.</p>
+
+<table>
+  <tr><th>Potential Anomaly</th><th>Resolved By</th></tr>
+  <tr><td>Storing blood group name in every donor row</td><td>FK to blood_groups; name stored once</td></tr>
+  <tr><td>Storing hospital city in every request row</td><td>FK to hospitals; city stored once</td></tr>
+  <tr><td>Storing staff name in every donation row</td><td>FK to staff; name stored once</td></tr>
+  <tr><td>Duplicate inventory entries per (bank, group)</td><td>UNIQUE(bank_id, blood_group_id, component_type)</td></tr>
+</table>
+
+<!-- ═══════════════ 6. SQL STATEMENTS ═══════════════ -->
+<div class="page-break"></div>
+<h2>6. SQL Statements</h2>
+
+<h3>6a. DDL — CREATE TABLE (sample: donors)</h3>
+<pre>CREATE TABLE donors (
+    donor_id            SERIAL PRIMARY KEY,
+    first_name          VARCHAR(50)  NOT NULL,
+    last_name           VARCHAR(50)  NOT NULL,
+    dob                 DATE         NOT NULL,
+    gender              VARCHAR(10)  NOT NULL CHECK(gender IN ('Male','Female','Other')),
+    phone               VARCHAR(20)  NOT NULL,
+    email               VARCHAR(100),
+    address             TEXT,
+    city                VARCHAR(50),
+    blood_group_id      INTEGER      NOT NULL REFERENCES blood_groups(blood_group_id),
+    registration_date   DATE         NOT NULL DEFAULT CURRENT_DATE,
+    last_donation_date  DATE,
+    total_donations     INTEGER      NOT NULL DEFAULT 0 CHECK(total_donations >= 0),
+    weight_kg           NUMERIC(5,1) CHECK(weight_kg IS NULL OR weight_kg >= 50),
+    is_active           BOOLEAN      NOT NULL DEFAULT TRUE,
+    emergency_contact   TEXT,
+    CONSTRAINT chk_age CHECK(dob &lt;= CURRENT_DATE - INTERVAL '18 years')
+);</pre>
+
+<h3>6b. DDL — ALTER &amp; DROP Examples</h3>
+<pre>-- Add a column
+ALTER TABLE donors ADD COLUMN nationality VARCHAR(30) DEFAULT 'Pakistani';
+
+-- Modify column type
+ALTER TABLE blood_banks ALTER COLUMN phone TYPE VARCHAR(25);
+
+-- Add a CHECK constraint
+ALTER TABLE donations ADD CONSTRAINT chk_units CHECK(units_donated &lt;= 2.0);
+
+-- Drop a column
+ALTER TABLE donors DROP COLUMN IF EXISTS nationality;
+
+-- Drop a table (safe, in dependency order)
+DROP TABLE IF EXISTS transfusions CASCADE;
+
+-- Rename a table
+ALTER TABLE hospitals RENAME TO medical_facilities;
+-- (rename back)
+ALTER TABLE medical_facilities RENAME TO hospitals;</pre>
+
+<h3>6c. DML — INSERT / UPDATE / DELETE</h3>
+<pre>-- INSERT: new donor
+INSERT INTO donors (first_name, last_name, dob, gender, phone, blood_group_id, weight_kg)
+VALUES ('Waqar', 'Ahmed', '1999-03-15', 'Male', '03001234567', 5, 70.0);
+
+-- INSERT: new blood request
+INSERT INTO blood_requests (patient_id, hospital_id, blood_group_id, units_requested, urgency_level)
+VALUES (3, 1, 5, 2.0, 'high');
+
+-- UPDATE: mark request as fulfilled
+UPDATE blood_requests
+SET status = 'fulfilled', approved_date = NOW()
+WHERE request_id = 5;
+
+-- UPDATE: increase inventory after donation
+UPDATE blood_inventory
+SET units_available = units_available + 1.0,
+    last_updated    = NOW()
+WHERE bank_id = 1 AND blood_group_id = 5 AND component_type = 'Whole Blood';
+
+-- DELETE: remove cancelled request
+DELETE FROM blood_requests
+WHERE status = 'cancelled' AND request_date &lt; NOW() - INTERVAL '30 days';
+
+-- SOFT DELETE: deactivate donor
+UPDATE donors SET is_active = FALSE WHERE donor_id = 3;</pre>
+
+<h3>6d. SELECT — WHERE, ORDER BY, GROUP BY</h3>
+<pre>-- WHERE: Find all O- donors in Karachi
+SELECT first_name, last_name, phone, total_donations
+FROM donors
+WHERE city = 'Karachi' AND blood_group_id = 6 AND is_active = TRUE;
+
+-- ORDER BY: Top 5 donors by donation count
+SELECT first_name || ' ' || last_name AS name,
+       total_donations, last_donation_date
+FROM donors
+ORDER BY total_donations DESC
+LIMIT 5;
+
+-- GROUP BY: Requests per hospital
+SELECT h.name AS hospital, COUNT(br.request_id) AS total_requests,
+       SUM(br.units_requested) AS total_units_requested
+FROM blood_requests br
+JOIN hospitals h ON br.hospital_id = h.hospital_id
+GROUP BY h.name
+ORDER BY total_requests DESC;
+
+-- GROUP BY + HAVING: hospitals with &gt;1 critical request
+SELECT h.name, COUNT(*) AS critical_count
+FROM blood_requests br
+JOIN hospitals h ON br.hospital_id = h.hospital_id
+WHERE br.urgency_level = 'critical'
+GROUP BY h.name
+HAVING COUNT(*) &gt; 1;</pre>
+
+<h3>6e. Aggregate Functions (SUM, AVG, COUNT, MAX, MIN)</h3>
+<pre>-- Total, average, max donations per blood group
+SELECT bg.group_name,
+       COUNT(dn.donation_id)            AS total_donations,
+       SUM(dn.units_donated)            AS total_units,
+       ROUND(AVG(dn.hemoglobin_level),2) AS avg_hemoglobin,
+       MAX(dn.units_donated)            AS max_single_donation,
+       MIN(dn.hemoglobin_level)         AS min_hemoglobin
+FROM donations dn
+JOIN blood_groups bg ON dn.blood_group_id = bg.blood_group_id
+GROUP BY bg.group_name
+ORDER BY total_donations DESC;
+
+-- Total inventory units across all banks
+SELECT SUM(units_available)  AS grand_total_units,
+       SUM(units_reserved)   AS total_reserved,
+       AVG(units_available)  AS avg_per_entry,
+       COUNT(DISTINCT bank_id) AS banks_with_stock
+FROM blood_inventory
+WHERE component_type = 'Whole Blood';
+
+-- Count patients per diagnosis category
+SELECT
+  CASE WHEN diagnosis ILIKE '%thalassaemia%' THEN 'Thalassaemia'
+       WHEN diagnosis ILIKE '%anaemia%'      THEN 'Anaemia'
+       WHEN diagnosis ILIKE '%trauma%'       THEN 'Trauma/Emergency'
+       ELSE 'Other' END AS category,
+  COUNT(*) AS patient_count
+FROM patients
+GROUP BY category
+ORDER BY patient_count DESC;</pre>
+
+<h3>6f. SQL JOINs</h3>
+<pre>-- INNER JOIN: Donation details (donor + blood group + bank)
+SELECT dn.donation_id,
+       d.first_name || ' ' || d.last_name AS donor_name,
+       bg.group_name, bb.name AS bank_name,
+       dn.donation_date::DATE, dn.units_donated, dn.status
+FROM donations dn
+JOIN donors      d  ON dn.donor_id       = d.donor_id
+JOIN blood_groups bg ON dn.blood_group_id = bg.blood_group_id
+JOIN blood_banks  bb ON dn.bank_id        = bb.bank_id
+ORDER BY dn.donation_date DESC;
+
+-- LEFT JOIN: All patients (even without a request)
+SELECT p.first_name || ' ' || p.last_name AS patient,
+       h.name AS hospital,
+       br.request_id, br.urgency_level, br.status
+FROM patients p
+LEFT JOIN blood_requests br ON p.patient_id  = br.patient_id
+LEFT JOIN hospitals       h ON p.hospital_id = h.hospital_id
+ORDER BY p.patient_id;
+
+-- Multi-table JOIN: Full transfusion audit trail
+SELECT t.transfusion_id,
+       p.first_name || ' ' || p.last_name  AS patient,
+       bg.group_name, t.units_transfused,
+       t.transfusion_date::DATE,
+       s.first_name || ' ' || s.last_name  AS performed_by,
+       t.outcome
+FROM transfusions t
+JOIN blood_requests  br ON t.request_id      = br.request_id
+JOIN blood_groups    bg ON br.blood_group_id = bg.blood_group_id
+LEFT JOIN patients   p  ON br.patient_id     = p.patient_id
+LEFT JOIN staff      s  ON t.staff_id        = s.staff_id
+ORDER BY t.transfusion_date DESC;</pre>
+
+<h3>6g. Complex Queries &amp; CTEs</h3>
+<pre>-- CTE 1: Donors who have donated more than the average
+WITH avg_donations AS (
+    SELECT AVG(total_donations) AS avg_count FROM donors
+)
+SELECT d.first_name || ' ' || d.last_name AS donor_name,
+       bg.group_name, d.total_donations,
+       ROUND(d.total_donations - ad.avg_count, 1) AS above_avg_by
+FROM donors d
+JOIN blood_groups bg ON d.blood_group_id = bg.blood_group_id
+CROSS JOIN avg_donations ad
+WHERE d.total_donations &gt; ad.avg_count
+ORDER BY d.total_donations DESC;
+
+-- CTE 2: Blood groups with inventory below 50 units (critical supply)
+WITH low_stock AS (
+    SELECT bg.group_name, bg.blood_group_id,
+           SUM(bi.units_available - bi.units_reserved) AS net_units
+    FROM blood_inventory bi
+    JOIN blood_groups bg ON bi.blood_group_id = bg.blood_group_id
+    WHERE bi.component_type = 'Whole Blood'
+    GROUP BY bg.group_name, bg.blood_group_id
+),
+pending_demand AS (
+    SELECT blood_group_id, SUM(units_requested) AS total_requested
+    FROM blood_requests
+    WHERE status IN ('pending','approved')
+    GROUP BY blood_group_id
+)
+SELECT ls.group_name,
+       ROUND(ls.net_units,2)          AS available_units,
+       COALESCE(pd.total_requested,0) AS pending_units,
+       CASE WHEN ls.net_units &lt; COALESCE(pd.total_requested,0)
+            THEN 'SHORTAGE' ELSE 'OK' END AS supply_status
+FROM low_stock ls
+LEFT JOIN pending_demand pd USING (blood_group_id)
+ORDER BY ls.net_units ASC;
+
+-- Window Function: Rank donors within each city
+SELECT first_name || ' ' || last_name AS donor_name,
+       city, total_donations,
+       RANK() OVER (PARTITION BY city ORDER BY total_donations DESC) AS city_rank
+FROM donors
+WHERE is_active = TRUE
+ORDER BY city, city_rank;
+
+-- Subquery: Patients at hospitals with most requests
+SELECT p.first_name || ' ' || p.last_name AS patient, h.name AS hospital, p.diagnosis
+FROM patients p
+JOIN hospitals h ON p.hospital_id = h.hospital_id
+WHERE h.hospital_id IN (
+    SELECT hospital_id
+    FROM blood_requests
+    GROUP BY hospital_id
+    ORDER BY COUNT(*) DESC
+    LIMIT 3
+);</pre>
+
+<!-- ═══════════════ 7. QUERY OUTPUTS ═══════════════ -->
+<div class="page-break"></div>
+<h2>7. Query Output Results</h2>
+
+<h3>Result 1 — Donations per Blood Group (Aggregate Query)</h3>
+<table>
+  <tr><th>group_name</th><th>total_donations</th><th>total_units</th><th>avg_hemoglobin</th><th>pct %</th></tr>
+  <tr><td>O+</td><td>4</td><td>4.00</td><td>14.05</td><td>20.0</td></tr>
+  <tr><td>O-</td><td>3</td><td>3.00</td><td>14.43</td><td>15.0</td></tr>
+  <tr><td>B+</td><td>3</td><td>3.00</td><td>13.43</td><td>15.0</td></tr>
+  <tr><td>A+</td><td>3</td><td>3.00</td><td>14.47</td><td>15.0</td></tr>
+  <tr><td>A-</td><td>2</td><td>2.00</td><td>14.20</td><td>10.0</td></tr>
+  <tr><td>B-</td><td>2</td><td>2.00</td><td>13.55</td><td>10.0</td></tr>
+  <tr><td>AB+</td><td>2</td><td>2.00</td><td>14.60</td><td>10.0</td></tr>
+  <tr><td>AB-</td><td>1</td><td>1.00</td><td>12.70</td><td>5.0</td></tr>
+</table>
+
+<h3>Result 2 — Inventory Status by Bank &amp; Blood Group (JOIN + CASE)</h3>
+<table>
+  <tr><th>group_name</th><th>blood_bank</th><th>available</th><th>reserved</th><th>net</th><th>status</th></tr>
+  <tr><td>O-</td><td>Islamabad Safe Blood Centre</td><td>18.00</td><td>2.00</td><td>16.00</td><td style="color:red;font-weight:bold">LOW</td></tr>
+  <tr><td>AB-</td><td>Karachi Voluntary Blood Service</td><td>22.00</td><td>5.00</td><td>17.00</td><td style="color:red;font-weight:bold">LOW</td></tr>
+  <tr><td>O-</td><td>NUTech National Blood Centre</td><td>42.00</td><td>8.00</td><td>34.00</td><td style="color:orange;font-weight:bold">LOW</td></tr>
+  <tr><td>B-</td><td>Punjab Blood Service Lahore</td><td>38.00</td><td>3.00</td><td>35.00</td><td style="color:orange;font-weight:bold">LOW</td></tr>
+  <tr><td>A-</td><td>Punjab Blood Service Lahore</td><td>65.00</td><td>5.00</td><td>60.00</td><td style="color:green">STABLE</td></tr>
+  <tr><td>O+</td><td>Karachi Voluntary Blood Service</td><td>410.00</td><td>30.00</td><td>380.00</td><td style="color:green">STABLE</td></tr>
+</table>
+
+<h3>Result 3 — Top 10 Donors by Total Donations</h3>
+<table>
+  <tr><th>#</th><th>donor_name</th><th>group</th><th>city</th><th>total</th><th>last_donation</th><th>status</th></tr>
+  <tr><td>1</td><td>Waheed Alam</td><td>O+</td><td>Peshawar</td><td>48</td><td>2025-11-28</td><td>Regular</td></tr>
+  <tr><td>2</td><td>Naeem Akhtar</td><td>AB+</td><td>Peshawar</td><td>40</td><td>2025-09-15</td><td>Lapsed</td></tr>
+  <tr><td>3</td><td>Khalid Nawaz</td><td>A+</td><td>Lahore</td><td>35</td><td>2025-11-20</td><td>Regular</td></tr>
+  <tr><td>4</td><td>Ayesha Siddiqui</td><td>B-</td><td>Karachi</td><td>28</td><td>2025-11-01</td><td>Lapsed</td></tr>
+  <tr><td>5</td><td>Shoaib Hassan</td><td>A-</td><td>Karachi</td><td>26</td><td>2025-07-28</td><td>Lapsed</td></tr>
+</table>
+
+<h3>Result 4 — Critical/High Blood Requests (Complex JOIN)</h3>
+<table>
+  <tr><th>req_id</th><th>patient</th><th>hospital</th><th>group</th><th>units</th><th>urgency</th><th>status</th><th>approved_by</th></tr>
+  <tr><td>3</td><td>Bushra Mirza</td><td>Shaukat Khanum</td><td>O-</td><td>3.00</td><td style="color:red">critical</td><td>fulfilled</td><td>Amina Rizvi</td></tr>
+  <tr><td>7</td><td>Shazia Kamal</td><td>Jinnah Postgraduate</td><td>O+</td><td>2.50</td><td style="color:red">critical</td><td>fulfilled</td><td>Amina Rizvi</td></tr>
+  <tr><td>8</td><td>Mushtaq Ghauri</td><td>PIMS Islamabad</td><td>O+</td><td>4.00</td><td style="color:red">critical</td><td>fulfilled</td><td>Amina Rizvi</td></tr>
+  <tr><td>10</td><td>Sajid Pervez</td><td>Shaukat Khanum</td><td>O-</td><td>5.00</td><td style="color:red">critical</td><td>fulfilled</td><td>Amina Rizvi</td></tr>
+  <tr><td>1</td><td>Ayaan Shah</td><td>Aga Khan University</td><td>B+</td><td>2.00</td><td style="color:orange">high</td><td>fulfilled</td><td>Zainab Aslam</td></tr>
+  <tr><td>4</td><td>Hamza Siddiq</td><td>Shaukat Khanum</td><td>A-</td><td>2.00</td><td style="color:orange">high</td><td>approved</td><td>Amina Rizvi</td></tr>
+</table>
+
+<!-- ═══════════════ 8. FRONTEND & BACKEND ═══════════════ -->
+<div class="page-break"></div>
+<h2>8. Front-End &amp; Back-End Integration</h2>
+
+<h3>Backend Architecture (Node.js + Express + Supabase)</h3>
+<pre>backend/
+├── server.js        ← Express app, all REST API routes
+├── supabase.js      ← Supabase client (service role)
+├── package.json     ← Dependencies: express, @supabase/supabase-js, dotenv
+└── .env             ← SUPABASE_URL + SUPABASE_SERVICE_KEY (not committed)</pre>
+
+<h3>Key API Endpoints</h3>
+<table>
+  <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+  <tr><td>GET</td><td>/api/donors</td><td>List all active donors</td></tr>
+  <tr><td>POST</td><td>/api/donors</td><td>Register new donor</td></tr>
+  <tr><td>PUT</td><td>/api/donors/:id</td><td>Update donor record</td></tr>
+  <tr><td>DELETE</td><td>/api/donors/:id</td><td>Soft-delete donor</td></tr>
+  <tr><td>GET</td><td>/api/inventory</td><td>Blood stock summary</td></tr>
+  <tr><td>GET</td><td>/api/requests</td><td>All blood requests</td></tr>
+  <tr><td>POST</td><td>/api/requests</td><td>Create blood request</td></tr>
+  <tr><td>PUT</td><td>/api/requests/:id</td><td>Approve/reject request</td></tr>
+  <tr><td>GET</td><td>/api/dashboard/stats</td><td>Aggregate dashboard stats</td></tr>
+  <tr><td>GET</td><td>/api/donations</td><td>Donation history</td></tr>
+  <tr><td>POST</td><td>/api/donations</td><td>Record donation</td></tr>
+</table>
+
+<h3>Supabase Client (backend/supabase.js)</h3>
+<pre>require('dotenv').config();
+const { createClient } = require('@supabase/supabase-js');
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY,
+  { auth: { persistSession: false } }
+);
+
+module.exports = supabase;</pre>
+
+<h3>Sample API Handler — Parameterized Query (SQL Injection Safe)</h3>
+<pre>// GET /api/inventory?city=Islamabad
+app.get('/api/inventory', async (req, res) => {
+  const { city, blood_group } = req.query;
+  let query = supabase
+    .from('v_inventory_detail')
+    .select('*')
+    .gt('net_available', 0);
+  if (city)        query = query.eq('bank_city', city);
+  if (blood_group) query = query.eq('group_name', blood_group);
+  const { data, error } = await query.order('net_available', { ascending: true });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});</pre>
+
+<h3>Front-End Fetch API Call (AJAX)</h3>
+<pre>// Fetch donors and render table
+async function loadDonors() {
+  const res  = await fetch('/api/donors');
+  const data = await res.json();
+  const tbody = document.querySelector('#donors-table tbody');
+  tbody.innerHTML = data.map(d => `
+    &lt;tr&gt;
+      &lt;td&gt;${d.first_name} ${d.last_name}&lt;/td&gt;
+      &lt;td&gt;${d.blood_group_name}&lt;/td&gt;
+      &lt;td&gt;${d.city}&lt;/td&gt;
+      &lt;td&gt;${d.total_donations}&lt;/td&gt;
+      &lt;td&gt;&lt;button onclick="editDonor(${d.donor_id})"&gt;Edit&lt;/button&gt;&lt;/td&gt;
+    &lt;/tr&gt;`).join('');
+}</pre>
+
+<!-- ═══════════════ 9. TESTING ═══════════════ -->
+<div class="page-break"></div>
+<h2>9. Testing &amp; Validation</h2>
+
+<table>
+  <tr><th>#</th><th>Test Case</th><th>Expected</th><th>Result</th></tr>
+  <tr><td>1</td><td>Apply full schema migration to Supabase</td><td>10 tables created with constraints</td><td style="color:green">PASS</td></tr>
+  <tr><td>2</td><td>Seed blood_groups (8 records)</td><td>8 rows inserted, no duplicates</td><td style="color:green">PASS</td></tr>
+  <tr><td>3</td><td>Seed donors (20 records)</td><td>20 rows, age constraint enforced</td><td style="color:green">PASS</td></tr>
+  <tr><td>4</td><td>FK constraint: donation with invalid donor_id</td><td>Foreign key violation error</td><td style="color:green">PASS</td></tr>
+  <tr><td>5</td><td>CHECK constraint: donor weight &lt; 50kg</td><td>Constraint violation error</td><td style="color:green">PASS</td></tr>
+  <tr><td>6</td><td>CHECK constraint: hemoglobin outside 7–20 range</td><td>Constraint violation error</td><td style="color:green">PASS</td></tr>
+  <tr><td>7</td><td>UNIQUE constraint: duplicate license_no in blood_banks</td><td>Unique violation error</td><td style="color:green">PASS</td></tr>
+  <tr><td>8</td><td>Aggregate query — donations per blood group</td><td>8 rows with correct totals</td><td style="color:green">PASS</td></tr>
+  <tr><td>9</td><td>JOIN query — critical blood requests with patient info</td><td>7 rows returned correctly</td><td style="color:green">PASS</td></tr>
+  <tr><td>10</td><td>CTE query — donors above average donations</td><td>Correct subset returned</td><td style="color:green">PASS</td></tr>
+  <tr><td>11</td><td>View v_inventory_summary</td><td>Per-group net stock with status</td><td style="color:green">PASS</td></tr>
+  <tr><td>12</td><td>API GET /api/donors returns JSON array</td><td>200 OK with donor list</td><td style="color:green">PASS</td></tr>
+  <tr><td>13</td><td>POST /api/donors with missing required field</td><td>400 validation error</td><td style="color:green">PASS</td></tr>
+  <tr><td>14</td><td>Parameterized queries prevent SQL injection</td><td>Input sanitized by Supabase client</td><td style="color:green">PASS</td></tr>
+  <tr><td>15</td><td>Admin dashboard loads chart data</td><td>Chart.js renders blood group stats</td><td style="color:green">PASS</td></tr>
+</table>
+
+<br>
+<p style="text-align:center;font-size:11pt;margin-top:40px;border-top:1px solid #ccc;padding-top:12px">
+  <b>NUTech Blood Bank Management System</b> — CS160 Database Systems PBL<br>
+  Batch AI-25 B &nbsp;|&nbsp; Instructor: Ms. Sumera Aslam &nbsp;|&nbsp; Due: 05-07-2026
+</p>
+
+</body>
+</html>

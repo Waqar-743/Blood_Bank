@@ -1,10 +1,11 @@
-const express   = require('express');
-const cors      = require('cors');
-const helmet    = require('helmet');
-const morgan    = require('morgan');
-const path      = require('path');
+require('dotenv').config();
+const express = require('express');
+const cors    = require('cors');
+const helmet  = require('helmet');
+const morgan  = require('morgan');
+const path    = require('path');
 
-const db = require('./database');
+const supabase = require('./supabase');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
@@ -16,359 +17,366 @@ app.use(morgan('dev'));
 
 // Serve frontend files
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
-// Serve root landing page
 app.use(express.static(path.join(__dirname, '..')));
-// Explicit landing page route
 app.get('/', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'Landing Page.html'));
 });
 
-// ── Helper ───────────────────────────────────────────────────
-const ok  = (res, data)    => res.json({ success: true, data });
-const err = (res, msg, code = 400) => res.status(code).json({ success: false, error: msg });
+// ── Helpers ───────────────────────────────────────────────────
+const ok  = (res, data)          => res.json({ success: true, data });
+const err = (res, msg, code=400) => res.status(code).json({ success: false, error: msg });
+
+// Throw on Supabase error helper
+function check(error, res) {
+  if (error) { err(res, error.message); return false; }
+  return true;
+}
 
 // ── BLOOD GROUPS ─────────────────────────────────────────────
-app.get('/api/blood-groups', (_req, res) => {
-  ok(res, db.prepare('SELECT * FROM blood_groups ORDER BY group_name').all());
+app.get('/api/blood-groups', async (_req, res) => {
+  const { data, error } = await supabase
+    .from('blood_groups').select('*').order('group_name');
+  if (!check(error, res)) return;
+  ok(res, data);
 });
 
 // ── BLOOD BANKS ──────────────────────────────────────────────
-app.get('/api/blood-banks', (_req, res) => {
-  ok(res, db.prepare('SELECT * FROM blood_banks WHERE is_active=1 ORDER BY name').all());
+app.get('/api/blood-banks', async (_req, res) => {
+  const { data, error } = await supabase
+    .from('blood_banks').select('*').eq('is_active', true).order('name');
+  if (!check(error, res)) return;
+  ok(res, data);
 });
 
 // ── HOSPITALS ────────────────────────────────────────────────
-app.get('/api/hospitals', (_req, res) => {
-  ok(res, db.prepare('SELECT * FROM hospitals ORDER BY name').all());
+app.get('/api/hospitals', async (_req, res) => {
+  const { data, error } = await supabase
+    .from('hospitals').select('*').order('name');
+  if (!check(error, res)) return;
+  ok(res, data);
 });
 
 // ── STAFF ────────────────────────────────────────────────────
-app.get('/api/staff', (_req, res) => {
-  ok(res, db.prepare(`
-    SELECT s.*, bb.name AS bank_name
-    FROM staff s JOIN blood_banks bb ON s.bank_id = bb.bank_id
-    WHERE s.is_active=1 ORDER BY s.first_name`).all());
+app.get('/api/staff', async (_req, res) => {
+  const { data, error } = await supabase
+    .from('staff')
+    .select('*, blood_banks(name)')
+    .eq('is_active', true)
+    .order('first_name');
+  if (!check(error, res)) return;
+  ok(res, data.map(s => ({ ...s, bank_name: s.blood_banks?.name, blood_banks: undefined })));
 });
 
 // ── DONORS ───────────────────────────────────────────────────
-app.get('/api/donors', (req, res) => {
+app.get('/api/donors', async (req, res) => {
   const { search, blood_group, city, active } = req.query;
-  let sql = `
-    SELECT d.*, bg.group_name AS blood_group_name
-    FROM donors d JOIN blood_groups bg ON d.blood_group_id = bg.blood_group_id
-    WHERE 1=1`;
-  const params = [];
+  let q = supabase
+    .from('v_donors_detail')
+    .select('*');
+
   if (search) {
-    sql += ` AND (d.first_name LIKE ? OR d.last_name LIKE ? OR d.phone LIKE ?)`;
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    q = q.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,phone.ilike.%${search}%`);
   }
-  if (blood_group) { sql += ` AND d.blood_group_id = ?`; params.push(blood_group); }
-  if (city)        { sql += ` AND LOWER(d.city) = LOWER(?)`; params.push(city); }
-  if (active !== undefined && active !== '') { sql += ` AND d.is_active = ?`; params.push(parseInt(active)); }
-  sql += ` ORDER BY d.registration_date DESC`;
-  ok(res, db.prepare(sql).all(...params));
+  if (blood_group) q = q.eq('blood_group_id', blood_group);
+  if (city)        q = q.ilike('city', city);
+  if (active !== undefined && active !== '') q = q.eq('is_active', active === '1' || active === 'true');
+
+  q = q.order('registration_date', { ascending: false });
+  const { data, error } = await q;
+  if (!check(error, res)) return;
+  ok(res, data);
 });
 
-app.get('/api/donors/:id', (req, res) => {
-  const donor = db.prepare(`
-    SELECT d.*, bg.group_name AS blood_group_name
-    FROM donors d JOIN blood_groups bg ON d.blood_group_id = bg.blood_group_id
-    WHERE d.donor_id = ?`).get(req.params.id);
-  if (!donor) return err(res, 'Donor not found', 404);
-  const donations = db.prepare(`
-    SELECT dn.*, bg.group_name, bb.name AS bank_name
-    FROM donations dn
-    JOIN blood_groups bg ON dn.blood_group_id = bg.blood_group_id
-    JOIN blood_banks  bb ON dn.bank_id = bb.bank_id
-    WHERE dn.donor_id = ? ORDER BY dn.donation_date DESC`).all(req.params.id);
-  ok(res, { ...donor, donations });
+app.get('/api/donors/:id', async (req, res) => {
+  const { data: donor, error: de } = await supabase
+    .from('v_donors_detail').select('*').eq('donor_id', req.params.id).single();
+  if (de) return err(res, 'Donor not found', 404);
+
+  const { data: donations } = await supabase
+    .from('v_donations_detail').select('*')
+    .eq('donor_id', req.params.id)
+    .order('donation_date', { ascending: false });
+
+  ok(res, { ...donor, donations: donations || [] });
 });
 
-app.post('/api/donors', (req, res) => {
+app.post('/api/donors', async (req, res) => {
   const { first_name, last_name, dob, gender, phone, email, address, city,
           blood_group_id, weight_kg, emergency_contact } = req.body;
   if (!first_name || !last_name || !dob || !gender || !phone || !blood_group_id)
     return err(res, 'Missing required fields');
-  try {
-    const info = db.prepare(`
-      INSERT INTO donors (first_name,last_name,dob,gender,phone,email,address,city,
-        blood_group_id,weight_kg,emergency_contact)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(
-      first_name, last_name, dob, gender, phone, email||null, address||null,
-      city||null, blood_group_id, weight_kg||null, emergency_contact||null);
-    ok(res, { donor_id: info.lastInsertRowid });
-  } catch (e) {
-    err(res, e.message);
-  }
+
+  const { data, error } = await supabase.from('donors').insert({
+    first_name, last_name, dob, gender, phone,
+    email: email || null, address: address || null, city: city || null,
+    blood_group_id, weight_kg: weight_kg || null,
+    emergency_contact: emergency_contact || null
+  }).select('donor_id').single();
+  if (!check(error, res)) return;
+  ok(res, { donor_id: data.donor_id });
 });
 
-app.put('/api/donors/:id', (req, res) => {
+app.put('/api/donors/:id', async (req, res) => {
   const { first_name, last_name, dob, gender, phone, email, address, city,
           blood_group_id, weight_kg, is_active, emergency_contact } = req.body;
-  try {
-    db.prepare(`
-      UPDATE donors SET first_name=?,last_name=?,dob=?,gender=?,phone=?,email=?,
-        address=?,city=?,blood_group_id=?,weight_kg=?,is_active=?,emergency_contact=?
-      WHERE donor_id=?`).run(
-      first_name, last_name, dob, gender, phone, email||null, address||null,
-      city||null, blood_group_id, weight_kg||null, is_active??1, emergency_contact||null,
-      req.params.id);
-    ok(res, { updated: true });
-  } catch (e) { err(res, e.message); }
+  const { error } = await supabase.from('donors').update({
+    first_name, last_name, dob, gender, phone,
+    email: email || null, address: address || null, city: city || null,
+    blood_group_id, weight_kg: weight_kg || null,
+    is_active: is_active ?? true,
+    emergency_contact: emergency_contact || null
+  }).eq('donor_id', req.params.id);
+  if (!check(error, res)) return;
+  ok(res, { updated: true });
 });
 
-app.delete('/api/donors/:id', (req, res) => {
-  db.prepare('UPDATE donors SET is_active=0 WHERE donor_id=?').run(req.params.id);
+app.delete('/api/donors/:id', async (req, res) => {
+  const { error } = await supabase.from('donors')
+    .update({ is_active: false }).eq('donor_id', req.params.id);
+  if (!check(error, res)) return;
   ok(res, { deleted: true });
 });
 
 // ── DONATIONS ────────────────────────────────────────────────
-app.get('/api/donations', (req, res) => {
+app.get('/api/donations', async (req, res) => {
   const { donor_id, status, limit = 50 } = req.query;
-  let sql = `
-    SELECT dn.*, d.first_name||' '||d.last_name AS donor_name,
-           bg.group_name, bb.name AS bank_name
-    FROM donations dn
-    JOIN donors d      ON dn.donor_id = d.donor_id
-    JOIN blood_groups bg ON dn.blood_group_id = bg.blood_group_id
-    JOIN blood_banks  bb ON dn.bank_id = bb.bank_id
-    WHERE 1=1`;
-  const params = [];
-  if (donor_id) { sql += ' AND dn.donor_id=?'; params.push(donor_id); }
-  if (status)   { sql += ' AND dn.status=?';   params.push(status); }
-  sql += ` ORDER BY dn.donation_date DESC LIMIT ?`;
-  params.push(parseInt(limit));
-  ok(res, db.prepare(sql).all(...params));
+  let q = supabase.from('v_donations_detail').select('*');
+  if (donor_id) q = q.eq('donor_id', donor_id);
+  if (status)   q = q.eq('status', status);
+  q = q.order('donation_date', { ascending: false }).limit(parseInt(limit));
+  const { data, error } = await q;
+  if (!check(error, res)) return;
+  ok(res, data);
 });
 
-app.post('/api/donations', (req, res) => {
+app.post('/api/donations', async (req, res) => {
   const { donor_id, bank_id, staff_id, blood_group_id, donation_date,
           units_donated, hemoglobin_level, blood_pressure, notes } = req.body;
   if (!donor_id || !bank_id || !blood_group_id)
     return err(res, 'donor_id, bank_id, blood_group_id required');
-  try {
-    const info = db.prepare(`
-      INSERT INTO donations (donor_id,bank_id,staff_id,blood_group_id,donation_date,
-        units_donated,hemoglobin_level,blood_pressure,notes,status)
-      VALUES (?,?,?,?,?,?,?,?,?,'completed')`).run(
-      donor_id, bank_id, staff_id||null, blood_group_id,
-      donation_date||new Date().toISOString(),
-      units_donated||1.0, hemoglobin_level||null, blood_pressure||null, notes||null);
 
-    // Update donor stats
-    db.prepare(`
-      UPDATE donors SET total_donations=total_donations+1,
-        last_donation_date=date(?) WHERE donor_id=?`
-    ).run(donation_date||new Date().toISOString(), donor_id);
+  const { data, error } = await supabase.from('donations').insert({
+    donor_id, bank_id, staff_id: staff_id || null, blood_group_id,
+    donation_date: donation_date || new Date().toISOString(),
+    units_donated: units_donated || 1.0,
+    hemoglobin_level: hemoglobin_level || null,
+    blood_pressure: blood_pressure || null,
+    notes: notes || null, status: 'completed'
+  }).select('donation_id').single();
+  if (!check(error, res)) return;
 
-    // Update inventory
-    db.prepare(`
-      UPDATE blood_inventory SET units_available=units_available+?,
-        last_updated=datetime('now')
-      WHERE bank_id=? AND blood_group_id=? AND component_type='Whole Blood'`
-    ).run(units_donated||1.0, bank_id, blood_group_id);
+  // Update donor stats
+  await supabase.rpc('increment_donor_donations', {
+    p_donor_id: donor_id,
+    p_date: donation_date || new Date().toISOString()
+  });
 
-    ok(res, { donation_id: info.lastInsertRowid });
-  } catch (e) { err(res, e.message); }
+  // Update inventory
+  await supabase.rpc('update_inventory_units', {
+    p_bank_id: bank_id,
+    p_blood_group_id: blood_group_id,
+    p_units: units_donated || 1.0
+  });
+
+  ok(res, { donation_id: data.donation_id });
 });
 
 // ── INVENTORY ────────────────────────────────────────────────
-app.get('/api/inventory', (req, res) => {
+app.get('/api/inventory', async (req, res) => {
   const { bank_id } = req.query;
-  let sql = `
-    SELECT bi.*, bg.group_name, bg.rh_factor, bg.abo_type, bb.name AS bank_name, bb.city
-    FROM blood_inventory bi
-    JOIN blood_groups bg ON bi.blood_group_id = bg.blood_group_id
-    JOIN blood_banks  bb ON bi.bank_id = bb.bank_id
-    WHERE 1=1`;
-  const params = [];
-  if (bank_id) { sql += ' AND bi.bank_id=?'; params.push(bank_id); }
-  sql += ' ORDER BY bi.units_available ASC';
-  ok(res, db.prepare(sql).all(...params));
+  let q = supabase.from('v_inventory_detail').select('*');
+  if (bank_id) q = q.eq('bank_id', bank_id);
+  q = q.order('units_available', { ascending: true });
+  const { data, error } = await q;
+  if (!check(error, res)) return;
+  ok(res, data);
 });
 
-app.get('/api/inventory/summary', (_req, res) => {
-  ok(res, db.prepare(`
-    SELECT bg.group_name, bg.blood_group_id,
-      SUM(bi.units_available) AS total_units,
-      SUM(bi.units_reserved)  AS reserved,
-      SUM(bi.units_available - bi.units_reserved) AS net_available,
-      CASE WHEN SUM(bi.units_available) < 30 THEN 'critical'
-           WHEN SUM(bi.units_available) < 100 THEN 'low'
-           ELSE 'stable' END AS status
-    FROM blood_inventory bi
-    JOIN blood_groups bg ON bi.blood_group_id = bg.blood_group_id
-    WHERE bi.component_type = 'Whole Blood'
-    GROUP BY bi.blood_group_id ORDER BY total_units ASC`).all());
+app.get('/api/inventory/summary', async (_req, res) => {
+  const { data, error } = await supabase.from('v_inventory_summary').select('*');
+  if (!check(error, res)) return;
+  ok(res, data);
 });
 
-app.put('/api/inventory/:id', (req, res) => {
+app.put('/api/inventory/:id', async (req, res) => {
   const { units_available, units_reserved, expiry_date } = req.body;
-  try {
-    db.prepare(`
-      UPDATE blood_inventory
-      SET units_available=?, units_reserved=?, expiry_date=?, last_updated=datetime('now')
-      WHERE inventory_id=?`
-    ).run(units_available, units_reserved||0, expiry_date||null, req.params.id);
-    ok(res, { updated: true });
-  } catch (e) { err(res, e.message); }
+  const { error } = await supabase.from('blood_inventory').update({
+    units_available,
+    units_reserved: units_reserved || 0,
+    expiry_date: expiry_date || null,
+    last_updated: new Date().toISOString()
+  }).eq('inventory_id', req.params.id);
+  if (!check(error, res)) return;
+  ok(res, { updated: true });
 });
 
 // ── PATIENTS ─────────────────────────────────────────────────
-app.get('/api/patients', (req, res) => {
+app.get('/api/patients', async (req, res) => {
   const { search, hospital_id } = req.query;
-  let sql = `
-    SELECT p.*, bg.group_name AS blood_group_name, h.name AS hospital_name
-    FROM patients p
-    LEFT JOIN blood_groups bg ON p.blood_group_id = bg.blood_group_id
-    LEFT JOIN hospitals    h  ON p.hospital_id = h.hospital_id
-    WHERE 1=1`;
-  const params = [];
+  let q = supabase.from('v_patients_detail').select('*');
   if (search) {
-    sql += ` AND (p.first_name LIKE ? OR p.last_name LIKE ? OR p.medical_record_no LIKE ?)`;
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    q = q.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,medical_record_no.ilike.%${search}%`);
   }
-  if (hospital_id) { sql += ' AND p.hospital_id=?'; params.push(hospital_id); }
-  sql += ' ORDER BY p.registered_date DESC';
-  ok(res, db.prepare(sql).all(...params));
+  if (hospital_id) q = q.eq('hospital_id', hospital_id);
+  q = q.order('registered_date', { ascending: false });
+  const { data, error } = await q;
+  if (!check(error, res)) return;
+  ok(res, data);
 });
 
-app.get('/api/patients/:id', (req, res) => {
-  const patient = db.prepare(`
-    SELECT p.*, bg.group_name AS blood_group_name, h.name AS hospital_name
-    FROM patients p
-    LEFT JOIN blood_groups bg ON p.blood_group_id = bg.blood_group_id
-    LEFT JOIN hospitals    h  ON p.hospital_id = h.hospital_id
-    WHERE p.patient_id = ?`).get(req.params.id);
-  if (!patient) return err(res, 'Patient not found', 404);
-  ok(res, patient);
+app.get('/api/patients/:id', async (req, res) => {
+  const { data, error } = await supabase
+    .from('v_patients_detail').select('*').eq('patient_id', req.params.id).single();
+  if (error) return err(res, 'Patient not found', 404);
+  ok(res, data);
 });
 
-app.post('/api/patients', (req, res) => {
+app.post('/api/patients', async (req, res) => {
   const { first_name, last_name, dob, gender, phone, address,
           blood_group_id, hospital_id, medical_record_no, diagnosis } = req.body;
   if (!first_name || !last_name) return err(res, 'Name required');
-  try {
-    const info = db.prepare(`
-      INSERT INTO patients (first_name,last_name,dob,gender,phone,address,
-        blood_group_id,hospital_id,medical_record_no,diagnosis)
-      VALUES (?,?,?,?,?,?,?,?,?,?)`).run(
-      first_name, last_name, dob||null, gender||null, phone||null, address||null,
-      blood_group_id||null, hospital_id||null,
-      medical_record_no||`MRN-${Date.now()}`, diagnosis||null);
-    ok(res, { patient_id: info.lastInsertRowid });
-  } catch (e) { err(res, e.message); }
+
+  const { data, error } = await supabase.from('patients').insert({
+    first_name, last_name,
+    dob: dob || null, gender: gender || null, phone: phone || null,
+    address: address || null,
+    blood_group_id: blood_group_id || null,
+    hospital_id: hospital_id || null,
+    medical_record_no: medical_record_no || `MRN-${Date.now()}`,
+    diagnosis: diagnosis || null
+  }).select('patient_id').single();
+  if (!check(error, res)) return;
+  ok(res, { patient_id: data.patient_id });
 });
 
-app.put('/api/patients/:id', (req, res) => {
+app.put('/api/patients/:id', async (req, res) => {
   const { first_name, last_name, dob, gender, phone, address,
           blood_group_id, hospital_id, diagnosis } = req.body;
-  try {
-    db.prepare(`
-      UPDATE patients SET first_name=?,last_name=?,dob=?,gender=?,phone=?,
-        address=?,blood_group_id=?,hospital_id=?,diagnosis=?
-      WHERE patient_id=?`).run(
-      first_name, last_name, dob||null, gender||null, phone||null, address||null,
-      blood_group_id||null, hospital_id||null, diagnosis||null, req.params.id);
-    ok(res, { updated: true });
-  } catch (e) { err(res, e.message); }
+  const { error } = await supabase.from('patients').update({
+    first_name, last_name,
+    dob: dob || null, gender: gender || null, phone: phone || null,
+    address: address || null,
+    blood_group_id: blood_group_id || null,
+    hospital_id: hospital_id || null,
+    diagnosis: diagnosis || null
+  }).eq('patient_id', req.params.id);
+  if (!check(error, res)) return;
+  ok(res, { updated: true });
 });
 
 // ── BLOOD REQUESTS ───────────────────────────────────────────
-app.get('/api/requests', (req, res) => {
+app.get('/api/requests', async (req, res) => {
   const { status, urgency, hospital_id } = req.query;
-  let sql = `
-    SELECT br.*, bg.group_name,
-           p.first_name||' '||p.last_name AS patient_name,
-           h.name AS hospital_name,
-           s.first_name||' '||s.last_name AS approved_by_name
-    FROM blood_requests br
-    JOIN blood_groups bg ON br.blood_group_id = bg.blood_group_id
-    JOIN hospitals    h  ON br.hospital_id    = h.hospital_id
-    LEFT JOIN patients p ON br.patient_id     = p.patient_id
-    LEFT JOIN staff    s ON br.approved_by    = s.staff_id
-    WHERE 1=1`;
-  const params = [];
-  if (status)      { sql += ' AND br.status=?';        params.push(status); }
-  if (urgency)     { sql += ' AND br.urgency_level=?';  params.push(urgency); }
-  if (hospital_id) { sql += ' AND br.hospital_id=?';   params.push(hospital_id); }
-  sql += ` ORDER BY
-    CASE br.urgency_level WHEN 'critical' THEN 1 WHEN 'high' THEN 2
-      WHEN 'medium' THEN 3 ELSE 4 END, br.request_date DESC`;
-  ok(res, db.prepare(sql).all(...params));
+  let q = supabase.from('v_requests_detail').select('*');
+  if (status)      q = q.eq('status', status);
+  if (urgency)     q = q.eq('urgency_level', urgency);
+  if (hospital_id) q = q.eq('hospital_id', hospital_id);
+  // Order by urgency priority then date
+  q = q.order('request_date', { ascending: false });
+  const { data, error } = await q;
+  if (!check(error, res)) return;
+
+  // Sort by urgency client-side (critical → high → medium → low)
+  const priority = { critical: 1, high: 2, medium: 3, low: 4 };
+  data.sort((a, b) => {
+    const pa = priority[a.urgency_level] || 5;
+    const pb = priority[b.urgency_level] || 5;
+    return pa - pb;
+  });
+  ok(res, data);
 });
 
-app.post('/api/requests', (req, res) => {
+app.post('/api/requests', async (req, res) => {
   const { patient_id, hospital_id, blood_group_id, units_requested,
           urgency_level, notes } = req.body;
   if (!hospital_id || !blood_group_id || !units_requested)
     return err(res, 'hospital_id, blood_group_id, units_requested required');
-  try {
-    const info = db.prepare(`
-      INSERT INTO blood_requests
-        (patient_id,hospital_id,blood_group_id,units_requested,urgency_level,notes)
-      VALUES (?,?,?,?,?,?)`).run(
-      patient_id||null, hospital_id, blood_group_id,
-      units_requested, urgency_level||'medium', notes||null);
-    ok(res, { request_id: info.lastInsertRowid });
-  } catch (e) { err(res, e.message); }
+
+  const { data, error } = await supabase.from('blood_requests').insert({
+    patient_id: patient_id || null,
+    hospital_id, blood_group_id, units_requested,
+    urgency_level: urgency_level || 'medium',
+    notes: notes || null
+  }).select('request_id').single();
+  if (!check(error, res)) return;
+  ok(res, { request_id: data.request_id });
 });
 
-app.put('/api/requests/:id', (req, res) => {
+app.put('/api/requests/:id', async (req, res) => {
   const { status, approved_by, units_requested, urgency_level, notes } = req.body;
-  try {
-    db.prepare(`
-      UPDATE blood_requests SET status=?, approved_by=?,
-        units_requested=?, urgency_level=?, notes=?,
-        approved_date=CASE WHEN ? IN ('approved','fulfilled') THEN datetime('now') ELSE approved_date END
-      WHERE request_id=?`).run(
-      status, approved_by||null, units_requested, urgency_level, notes||null,
-      status, req.params.id);
-    ok(res, { updated: true });
-  } catch (e) { err(res, e.message); }
+  const update = { status, units_requested, urgency_level, notes: notes || null };
+  if (approved_by) update.approved_by = approved_by;
+  if (status === 'approved' || status === 'fulfilled') {
+    update.approved_date = new Date().toISOString();
+  }
+  const { error } = await supabase.from('blood_requests')
+    .update(update).eq('request_id', req.params.id);
+  if (!check(error, res)) return;
+  ok(res, { updated: true });
 });
 
 // ── DASHBOARD STATS ──────────────────────────────────────────
-app.get('/api/stats', (_req, res) => {
-  const totalDonors       = db.prepare("SELECT COUNT(*) AS c FROM donors WHERE is_active=1").get().c;
-  const totalDonations    = db.prepare("SELECT COUNT(*) AS c FROM donations WHERE status='completed'").get().c;
-  const pendingRequests   = db.prepare("SELECT COUNT(*) AS c FROM blood_requests WHERE status='pending'").get().c;
-  const criticalRequests  = db.prepare("SELECT COUNT(*) AS c FROM blood_requests WHERE urgency_level='critical' AND status NOT IN ('fulfilled','rejected','cancelled')").get().c;
-  const totalUnits        = db.prepare("SELECT COALESCE(SUM(units_available),0) AS u FROM blood_inventory WHERE component_type='Whole Blood'").get().u;
-  const donationsToday    = db.prepare("SELECT COUNT(*) AS c FROM donations WHERE date(donation_date)=date('now')").get().c;
-  const inventory         = db.prepare(`
-    SELECT bg.group_name, SUM(bi.units_available) AS units,
-      CASE WHEN SUM(bi.units_available) < 30 THEN 'critical'
-           WHEN SUM(bi.units_available) < 100 THEN 'low' ELSE 'stable' END AS status
-    FROM blood_inventory bi JOIN blood_groups bg ON bi.blood_group_id=bg.blood_group_id
-    WHERE bi.component_type='Whole Blood' GROUP BY bi.blood_group_id`).all();
-  const recentDonations = db.prepare(`
-    SELECT d.first_name||' '||d.last_name AS donor_name, bg.group_name, dn.donation_date, dn.units_donated
-    FROM donations dn JOIN donors d ON dn.donor_id=d.donor_id
-    JOIN blood_groups bg ON dn.blood_group_id=bg.blood_group_id
-    ORDER BY dn.donation_date DESC LIMIT 5`).all();
-  const urgentRequests = db.prepare(`
-    SELECT br.request_id, h.name AS hospital, bg.group_name, br.urgency_level, br.units_requested, br.request_date
-    FROM blood_requests br JOIN hospitals h ON br.hospital_id=h.hospital_id
-    JOIN blood_groups bg ON br.blood_group_id=bg.blood_group_id
-    WHERE br.status='pending' ORDER BY
-      CASE br.urgency_level WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 ELSE 4 END
-    LIMIT 5`).all();
+app.get('/api/stats', async (_req, res) => {
+  const [
+    { count: totalDonors },
+    { count: totalDonations },
+    { count: pendingRequests },
+    { count: criticalRequests },
+    invRes,
+    summRes,
+    recentDonRes,
+    urgentReqRes
+  ] = await Promise.all([
+    supabase.from('donors').select('*', { count: 'exact', head: true }).eq('is_active', true),
+    supabase.from('donations').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+    supabase.from('blood_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('blood_requests').select('*', { count: 'exact', head: true })
+      .eq('urgency_level', 'critical').not('status', 'in', '("fulfilled","rejected","cancelled")'),
+    supabase.from('blood_inventory')
+      .select('units_available').eq('component_type', 'Whole Blood'),
+    supabase.from('v_inventory_summary').select('*'),
+    supabase.from('v_donations_detail')
+      .select('donor_name,group_name,donation_date,units_donated')
+      .order('donation_date', { ascending: false }).limit(5),
+    supabase.from('v_requests_detail')
+      .select('request_id,hospital_name,group_name,urgency_level,units_requested,request_date')
+      .eq('status', 'pending')
+      .order('request_date', { ascending: false }).limit(5)
+  ]);
+
+  const totalUnits = (invRes.data || []).reduce((s, r) => s + parseFloat(r.units_available || 0), 0);
+
+  // Donations today (client-side filter for simplicity)
+  const today = new Date().toISOString().slice(0, 10);
+  const { count: donationsToday } = await supabase
+    .from('donations')
+    .select('*', { count: 'exact', head: true })
+    .gte('donation_date', today + 'T00:00:00')
+    .lte('donation_date', today + 'T23:59:59');
 
   ok(res, {
     totalDonors, totalDonations, pendingRequests,
     criticalRequests, totalUnits, donationsToday,
-    inventory, recentDonations, urgentRequests
+    inventory: summRes.data || [],
+    recentDonations: recentDonRes.data || [],
+    urgentRequests: (urgentReqRes.data || []).map(r => ({
+      ...r, hospital: r.hospital_name
+    }))
   });
 });
 
-// ── SPA fallback for /admin/* ────────────────────────────────
+// ── SPA fallback ──────────────────────────────────────────────
 app.get('/admin', (_req, res) => res.redirect('/admin/index.html'));
 app.get('/admin/*', (_req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'admin', 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`\n🩸 Nutech Blood Bank API running → http://localhost:${PORT}`);
-  console.log(`📊 Admin Panel → http://localhost:${PORT}/admin/index.html\n`);
-});
+// Run directly (local dev) — Vercel uses the module.exports below instead
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`\n Blood Bank API → http://localhost:${PORT}`);
+    console.log(` Admin Panel   → http://localhost:${PORT}/admin/index.html\n`);
+  });
+}
+
+module.exports = app;

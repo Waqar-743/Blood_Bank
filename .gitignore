@@ -4,3 +4,10 @@ data/*.db
 data/*.db-journal
 *.log
 .DS_Store
+.env
+backend/.env
+.vercel
+
+# Local IDE / tool configs
+.mcp.json
+.claude/settings.local.json

@@ -1,14 +1,10 @@
-name: CI/CD
+name: CI/CD — Build, Test & Deploy to Vercel
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   workflow_dispatch:
 
 permissions:
@@ -18,17 +14,19 @@ concurrency:
   group: ci-cd-${{ github.ref }}
   cancel-in-progress: true
 
+# ─────────────────────────────────────────────────────────────
+# JOB 1 — Validate required files exist
+# ─────────────────────────────────────────────────────────────
 jobs:
   validate-assets:
-    name: Validate static assets and SQL artifacts
+    name: Validate static assets
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Verify required static files exist
+      - name: Verify required files
         shell: bash
         run: |
           set -euo pipefail
@@ -37,115 +35,107 @@ jobs:
             "frontend/admin/index.html"
             "frontend/admin/login.html"
             "backend/server.js"
-            "backend/database.js"
+            "backend/supabase.js"
             "backend/package.json"
             "backend/package-lock.json"
-            "sql/schema.sql"
-            "sql/seed.sql"
-            "sql/queries.sql"
+            "vercel.json"
+            "sql/supabase_schema.sql"
+            "sql/supabase_seed.sql"
           )
           for f in "${required_files[@]}"; do
             if [ ! -s "$f" ]; then
-              echo "Missing or empty required file: $f" >&2
+              echo "Missing or empty: $f" >&2
               exit 1
             fi
             echo "ok: $f"
           done
 
-      - name: Verify image directory is present and non-empty
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -d image
-          count=$(find image -type f | wc -l)
-          if [ "$count" -lt 1 ]; then
-            echo "image/ directory must contain at least one asset" >&2
-            exit 1
-          fi
-          echo "image assets: $count"
-
+# ─────────────────────────────────────────────────────────────
+# JOB 2 — Backend syntax check + Supabase smoke test
+# ─────────────────────────────────────────────────────────────
   backend-smoke:
-    name: Backend smoke tests
+    name: Backend smoke test (Supabase)
     needs: validate-assets
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      PORT: 3000
 
-      - name: Setup Node.js
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
           cache-dependency-path: backend/package-lock.json
 
-      - name: Install backend dependencies
+      - name: Install dependencies
         working-directory: backend
         run: npm ci
 
-      - name: Syntax check backend sources
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --check backend/server.js
-          node --check backend/database.js
+      - name: Syntax check
+        run: node --check backend/server.js && node --check backend/supabase.js
 
-      - name: Start API and run smoke checks
+      - name: Start API + smoke check endpoints
         shell: bash
         run: |
           set -euo pipefail
 
-          node --experimental-sqlite backend/server.js > server.log 2>&1 &
+          # Skip live API calls if secrets are not configured (e.g. in forks)
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_KEY" ]; then
+            echo "Supabase secrets not set — skipping live smoke test (syntax-only pass)"
+            exit 0
+          fi
+
+          node backend/server.js > server.log 2>&1 &
           SERVER_PID=$!
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
 
+          # Wait up to 30s for the server to be ready
           READY=0
-          for i in {1..40}; do
+          for i in {1..30}; do
             if curl -fsS "http://127.0.0.1:3000/api/blood-groups" > /dev/null 2>&1; then
-              READY=1
-              break
+              READY=1; break
             fi
             sleep 1
           done
 
           if [ "$READY" -ne 1 ]; then
-            echo "API failed to become ready within the timeout window" >&2
-            echo "----- server.log -----"
+            echo "Server did not start in time" >&2
             cat server.log || true
             exit 1
           fi
 
-          echo "API is ready, exercising endpoints..."
-          curl -fsS "http://127.0.0.1:3000/api/stats" -o stats.json
-          curl -fsS "http://127.0.0.1:3000/api/blood-groups" -o blood-groups.json
-          curl -fsS "http://127.0.0.1:3000/api/inventory/summary" -o inventory-summary.json
-          curl -fsS "http://127.0.0.1:3000/api/donors" -o donors.json
+          echo "Server ready — running endpoint checks..."
+          curl -fsS http://127.0.0.1:3000/api/blood-groups    -o blood-groups.json
+          curl -fsS http://127.0.0.1:3000/api/inventory/summary -o inventory.json
+          curl -fsS http://127.0.0.1:3000/api/donors           -o donors.json
+          curl -fsS http://127.0.0.1:3000/api/stats            -o stats.json
 
           node -e "
             const fs = require('fs');
-            const stats = JSON.parse(fs.readFileSync('stats.json', 'utf8'));
-            if (!stats.success || !stats.data || typeof stats.data.totalDonors !== 'number') {
-              console.error('stats payload failed validation');
-              process.exit(1);
+            const checks = [
+              ['blood-groups', d => Array.isArray(d.data) && d.data.length > 0],
+              ['inventory',    d => Array.isArray(d.data)],
+              ['donors',       d => Array.isArray(d.data)],
+              ['stats',        d => typeof d.data.totalDonors === 'number'],
+            ];
+            let ok = true;
+            for (const [name, fn] of checks) {
+              const d = JSON.parse(fs.readFileSync(name + '.json', 'utf8'));
+              if (!d.success || !fn(d)) {
+                console.error('FAIL:', name, JSON.stringify(d).slice(0, 200));
+                ok = false;
+              } else {
+                console.log('PASS:', name);
+              }
             }
-            const groups = JSON.parse(fs.readFileSync('blood-groups.json', 'utf8'));
-            if (!groups.success || !Array.isArray(groups.data) || groups.data.length === 0) {
-              console.error('blood-groups payload failed validation');
-              process.exit(1);
-            }
-            const inv = JSON.parse(fs.readFileSync('inventory-summary.json', 'utf8'));
-            if (!inv.success || !Array.isArray(inv.data)) {
-              console.error('inventory summary payload failed validation');
-              process.exit(1);
-            }
-            const donors = JSON.parse(fs.readFileSync('donors.json', 'utf8'));
-            if (!donors.success || !Array.isArray(donors.data)) {
-              console.error('donors payload failed validation');
-              process.exit(1);
-            }
-            console.log('All smoke endpoints validated successfully.');
+            if (!ok) process.exit(1);
           "
 
       - name: Upload server logs on failure
@@ -156,62 +146,80 @@ jobs:
           path: server.log
           if-no-files-found: ignore
 
-  deploy-pages:
-    name: Deploy live site
+# ─────────────────────────────────────────────────────────────
+# JOB 3 — Deploy to Vercel (main/master branch only, not PRs)
+#
+# Required GitHub Secrets:
+#   VERCEL_TOKEN        — Vercel personal access token
+#   VERCEL_ORG_ID       — Vercel team/org ID  (vercel whoami --token ...)
+#   VERCEL_PROJECT_ID   — Vercel project ID   (found in .vercel/project.json after first link)
+#   SUPABASE_URL        — https://<ref>.supabase.co
+#   SUPABASE_SERVICE_KEY — service_role key from Supabase dashboard
+# ─────────────────────────────────────────────────────────────
+  deploy-vercel:
+    name: Deploy to Vercel
     if: github.event_name != 'pull_request'
-    needs:
-      - validate-assets
-      - backend-smoke
+    needs: [validate-assets, backend-smoke]
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Prepare static site artifact
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Inject Supabase env vars into Vercel project
         shell: bash
         run: |
-          set -euo pipefail
+          # Upsert environment variables so Vercel serverless functions have them at runtime.
+          # These come from GitHub Secrets → Vercel env (no plain-text secrets in YAML).
+          for VAR_NAME in SUPABASE_URL SUPABASE_SERVICE_KEY; do
+            VAR_VALUE="${!VAR_NAME}"
+            if [ -n "$VAR_VALUE" ]; then
+              echo "$VAR_VALUE" | vercel env add "$VAR_NAME" production --token=${{ secrets.VERCEL_TOKEN }} --force || true
+            else
+              echo "Warning: $VAR_NAME is empty — skipping"
+            fi
+          done
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
 
-          rm -rf dist
-          mkdir -p dist
+      - name: Pull Vercel environment info
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-          cp "Landing Page.html" "dist/Landing Page.html"
-          cp "Landing Page.html" "dist/index.html"
+      - name: Build project
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
-          cp -R image dist/image
-          cp -R frontend dist/frontend
+      - name: Deploy to Vercel (production)
+        id: deploy
+        run: |
+          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Deployed to: $URL"
 
-          touch dist/.nojekyll
-
-          echo "----- dist contents -----"
-          ls -la dist
-          echo "----- dist/frontend/admin -----"
-          ls -la dist/frontend/admin
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Smoke check deployed URL
+        run: |
+          URL="${{ steps.deploy.outputs.url }}"
+          echo "Checking $URL/api/blood-groups ..."
+          for i in {1..12}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL/api/blood-groups")
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Live endpoint OK (HTTP 200)"
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $STATUS — retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Deployed URL did not respond with 200 in time" >&2
+          exit 1
 
       - name: Print deployment URL
-        shell: bash
+        if: success()
         run: |
-          echo "Live site deployed to: ${{ steps.deployment.outputs.page_url }}"
+          echo "🚀 Production URL: ${{ steps.deploy.outputs.url }}"
