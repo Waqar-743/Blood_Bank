@@ -1,4 +1,4 @@
-name: CI/CD — Build, Test & Deploy to Vercel
+name: CI/CD — Blood Bank Backend + Deploy to Vercel
 
 on:
   push:
@@ -19,7 +19,7 @@ concurrency:
 # ─────────────────────────────────────────────────────────────
 jobs:
   validate-assets:
-    name: Validate static assets
+    name: "🗂 Validate required files"
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -42,19 +42,22 @@ jobs:
             "sql/supabase_schema.sql"
             "sql/supabase_seed.sql"
           )
+          ALL_OK=true
           for f in "${required_files[@]}"; do
             if [ ! -s "$f" ]; then
-              echo "Missing or empty: $f" >&2
-              exit 1
+              echo "❌ Missing or empty: $f" >&2
+              ALL_OK=false
+            else
+              echo "✅ ok: $f"
             fi
-            echo "ok: $f"
           done
+          [ "$ALL_OK" = true ] || exit 1
 
 # ─────────────────────────────────────────────────────────────
-# JOB 2 — Backend syntax check + Supabase smoke test
+# JOB 2 — Backend: install → syntax check → live smoke test
 # ─────────────────────────────────────────────────────────────
   backend-smoke:
-    name: Backend smoke test (Supabase)
+    name: "🧪 Backend smoke test"
     needs: validate-assets
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -74,71 +77,82 @@ jobs:
           cache: "npm"
           cache-dependency-path: backend/package-lock.json
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         working-directory: backend
-        run: npm ci
+        run: npm ci --prefer-offline
 
-      - name: Syntax check
-        run: node --check backend/server.js && node --check backend/supabase.js
+      - name: Syntax check (Node parse)
+        run: |
+          node --check backend/server.js
+          node --check backend/supabase.js
+          echo "✅ Syntax OK"
 
-      - name: Start API + smoke check endpoints
+      - name: Start server & smoke test live endpoints
         shell: bash
         run: |
           set -euo pipefail
 
-          # Skip live API calls if secrets are not configured (e.g. in forks)
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_KEY" ]; then
-            echo "Supabase secrets not set — skipping live smoke test (syntax-only pass)"
+          # If secrets are absent (fork PRs), do syntax-only run
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_KEY:-}" ]; then
+            echo "⚠️  Supabase secrets not set — syntax-only pass (no live test)"
             exit 0
           fi
 
+          # Start server in background
           node backend/server.js > server.log 2>&1 &
           SERVER_PID=$!
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
 
-          # Wait up to 30s for the server to be ready
+          # Wait up to 30 s for /api/blood-groups to respond
+          echo "Waiting for server on :3000 ..."
           READY=0
-          for i in {1..30}; do
+          for i in $(seq 1 30); do
             if curl -fsS "http://127.0.0.1:3000/api/blood-groups" > /dev/null 2>&1; then
-              READY=1; break
+              READY=1
+              echo "Server ready after ${i}s"
+              break
             fi
             sleep 1
           done
 
           if [ "$READY" -ne 1 ]; then
-            echo "Server did not start in time" >&2
-            cat server.log || true
+            echo "❌ Server failed to start within 30s" >&2
+            cat server.log >&2
             exit 1
           fi
 
-          echo "Server ready — running endpoint checks..."
-          curl -fsS http://127.0.0.1:3000/api/blood-groups    -o blood-groups.json
+          # Hit every critical endpoint
+          echo "Running endpoint checks..."
+          curl -fsS http://127.0.0.1:3000/api/blood-groups     -o blood-groups.json
           curl -fsS http://127.0.0.1:3000/api/inventory/summary -o inventory.json
-          curl -fsS http://127.0.0.1:3000/api/donors           -o donors.json
-          curl -fsS http://127.0.0.1:3000/api/stats            -o stats.json
+          curl -fsS http://127.0.0.1:3000/api/donors            -o donors.json
+          curl -fsS http://127.0.0.1:3000/api/stats             -o stats.json
 
-          node -e "
-            const fs = require('fs');
-            const checks = [
-              ['blood-groups', d => Array.isArray(d.data) && d.data.length > 0],
-              ['inventory',    d => Array.isArray(d.data)],
-              ['donors',       d => Array.isArray(d.data)],
-              ['stats',        d => typeof d.data.totalDonors === 'number'],
-            ];
-            let ok = true;
-            for (const [name, fn] of checks) {
-              const d = JSON.parse(fs.readFileSync(name + '.json', 'utf8'));
-              if (!d.success || !fn(d)) {
-                console.error('FAIL:', name, JSON.stringify(d).slice(0, 200));
-                ok = false;
-              } else {
-                console.log('PASS:', name);
-              }
+          # Validate JSON shapes
+          node - <<'EOF'
+          const fs = require('fs');
+          const checks = [
+            ['blood-groups', d => d.success && Array.isArray(d.data)],
+            ['inventory',    d => d.success && (Array.isArray(d.data) || typeof d.data === 'object')],
+            ['donors',       d => d.success && Array.isArray(d.data)],
+            ['stats',        d => d.success && typeof d.data === 'object' && 'totalDonors' in d.data],
+          ];
+          let allOk = true;
+          for (const [name, fn] of checks) {
+            let d;
+            try { d = JSON.parse(fs.readFileSync(name + '.json', 'utf8')); }
+            catch (e) { console.error('FAIL (parse):', name, e.message); allOk = false; continue; }
+            if (!fn(d)) {
+              console.error('FAIL:', name, JSON.stringify(d).slice(0, 300));
+              allOk = false;
+            } else {
+              console.log('PASS:', name);
             }
-            if (!ok) process.exit(1);
-          "
+          }
+          if (!allOk) process.exit(1);
+          EOF
 
-      - name: Upload server logs on failure
+      - name: Upload server log on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -147,17 +161,17 @@ jobs:
           if-no-files-found: ignore
 
 # ─────────────────────────────────────────────────────────────
-# JOB 3 — Deploy to Vercel (main/master branch only, not PRs)
+# JOB 3 — Deploy backend to Vercel (push to main only)
 #
-# Required GitHub Secrets:
-#   VERCEL_TOKEN        — Vercel personal access token
-#   VERCEL_ORG_ID       — Vercel team/org ID  (vercel whoami --token ...)
-#   VERCEL_PROJECT_ID   — Vercel project ID   (found in .vercel/project.json after first link)
-#   SUPABASE_URL        — https://<ref>.supabase.co
-#   SUPABASE_SERVICE_KEY — service_role key from Supabase dashboard
+# Required GitHub Secrets → Settings → Secrets → Actions:
+#   VERCEL_TOKEN         — vercel.com → Account Settings → Tokens
+#   VERCEL_ORG_ID        — vercel.com → Team Settings → General
+#   VERCEL_PROJECT_ID    — vercel.com → Project → Settings → General
+#   SUPABASE_URL         — https://<ref>.supabase.co
+#   SUPABASE_SERVICE_KEY — service_role key (Supabase dashboard → Settings → API)
 # ─────────────────────────────────────────────────────────────
   deploy-vercel:
-    name: Deploy to Vercel
+    name: "🚀 Deploy to Vercel"
     if: github.event_name != 'pull_request'
     needs: [validate-assets, backend-smoke]
     runs-on: ubuntu-latest
@@ -171,55 +185,86 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Vercel CLI
-        run: npm install -g vercel@latest
+        run: npm install -g vercel@latest --silent
 
-      - name: Inject Supabase env vars into Vercel project
+      - name: Push env vars to Vercel project
+        # Use printf to pipe the value non-interactively; --force overwrites existing
         shell: bash
-        run: |
-          # Upsert environment variables so Vercel serverless functions have them at runtime.
-          # These come from GitHub Secrets → Vercel env (no plain-text secrets in YAML).
-          for VAR_NAME in SUPABASE_URL SUPABASE_SERVICE_KEY; do
-            VAR_VALUE="${!VAR_NAME}"
-            if [ -n "$VAR_VALUE" ]; then
-              echo "$VAR_VALUE" | vercel env add "$VAR_NAME" production --token=${{ secrets.VERCEL_TOKEN }} --force || true
-            else
-              echo "Warning: $VAR_NAME is empty — skipping"
-            fi
-          done
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          V_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          V_SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          set -euo pipefail
 
-      - name: Pull Vercel environment info
+          push_env() {
+            local name="$1"
+            local value="$2"
+            if [ -z "$value" ]; then
+              echo "⚠️  $name is empty — skipping"
+              return
+            fi
+            # Remove existing env var (ignore errors if it doesn't exist)
+            vercel env rm "$name" production --yes --token="$VERCEL_TOKEN" 2>/dev/null || true
+            # Add new value — printf avoids trailing newline issues
+            printf '%s' "$value" | vercel env add "$name" production --token="$VERCEL_TOKEN"
+            echo "✅ Pushed $name"
+          }
+
+          push_env "SUPABASE_URL"         "$V_SUPABASE_URL"
+          push_env "SUPABASE_SERVICE_KEY" "$V_SUPABASE_SERVICE_KEY"
+
+      - name: Pull Vercel project metadata
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Build project
+      - name: Build for production
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Deploy to Vercel (production)
+      - name: Deploy prebuilt artifact to Vercel
         id: deploy
+        shell: bash
         run: |
-          URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
-          echo "url=$URL" >> $GITHUB_OUTPUT
-          echo "Deployed to: $URL"
+          DEPLOY_OUTPUT=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} 2>&1)
+          echo "$DEPLOY_OUTPUT"
+          # Extract the https:// URL from the output
+          DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -Eo 'https://[^ ]+\.vercel\.app' | tail -1)
+          if [ -z "$DEPLOY_URL" ]; then
+            echo "❌ Could not extract deployment URL" >&2
+            exit 1
+          fi
+          echo "url=$DEPLOY_URL" >> "$GITHUB_OUTPUT"
+          echo "✅ Deploy URL: $DEPLOY_URL"
 
-      - name: Smoke check deployed URL
+      - name: Smoke check production endpoint
+        shell: bash
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
         run: |
-          URL="${{ steps.deploy.outputs.url }}"
-          echo "Checking $URL/api/blood-groups ..."
-          for i in {1..12}; do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$URL/api/blood-groups")
+          set -euo pipefail
+          echo "Polling $DEPLOY_URL/api/blood-groups ..."
+          for i in $(seq 1 15); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$DEPLOY_URL/api/blood-groups")
             if [ "$STATUS" = "200" ]; then
-              echo "✅ Live endpoint OK (HTTP 200)"
+              echo "✅ Production endpoint live (HTTP 200)"
               exit 0
             fi
-            echo "Attempt $i: HTTP $STATUS — retrying in 10s..."
+            echo "Attempt $i/15: HTTP $STATUS — waiting 10s..."
             sleep 10
           done
-          echo "❌ Deployed URL did not respond with 200 in time" >&2
+          echo "❌ Production endpoint did not return 200 within 150s" >&2
           exit 1
 
-      - name: Print deployment URL
+      - name: "📢 Deployment summary"
         if: success()
         run: |
-          echo "🚀 Production URL: ${{ steps.deploy.outputs.url }}"
+          echo ""
+          echo "============================================="
+          echo "  🩸 Blood Bank API — LIVE"
+          echo "  URL: ${{ steps.deploy.outputs.url }}"
+          echo "  Endpoints:"
+          echo "    /api/blood-groups"
+          echo "    /api/donors"
+          echo "    /api/donations"
+          echo "    /api/inventory"
+          echo "    /api/stats"
+          echo "============================================="
