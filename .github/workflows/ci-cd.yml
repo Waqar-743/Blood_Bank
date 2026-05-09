@@ -103,7 +103,7 @@ jobs:
           SERVER_PID=$!
           trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
 
-          # Wait up to 30 s for /api/blood-groups to respond
+          # Wait up to 30s for /api/blood-groups to respond
           echo "Waiting for server on :3000 ..."
           READY=0
           for i in $(seq 1 30); do
@@ -177,7 +177,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # VERCEL_TOKEN at job level — Vercel CLI auto-detects it for ALL steps
+    # No need to pass --token on every command
     env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
@@ -187,11 +190,18 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest --silent
 
-      - name: Push env vars to Vercel project
-        # Use printf to pipe the value non-interactively; --force overwrites existing
+      - name: Verify VERCEL_TOKEN is set
+        shell: bash
+        run: |
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "❌ VERCEL_TOKEN is not set in GitHub → Settings → Secrets → Actions" >&2
+            exit 1
+          fi
+          echo "✅ VERCEL_TOKEN is present (${#VERCEL_TOKEN} chars)"
+
+      - name: Push Supabase env vars to Vercel project
         shell: bash
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           V_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           V_SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
@@ -204,29 +214,28 @@ jobs:
               echo "⚠️  $name is empty — skipping"
               return
             fi
-            # Remove existing env var (ignore errors if it doesn't exist)
-            vercel env rm "$name" production --yes --token="$VERCEL_TOKEN" 2>/dev/null || true
-            # Add new value — printf avoids trailing newline issues
-            printf '%s' "$value" | vercel env add "$name" production --token="$VERCEL_TOKEN"
-            echo "✅ Pushed $name"
+            # Remove existing (ignore error if not found), then add fresh value
+            vercel env rm "$name" production --yes 2>/dev/null || true
+            printf '%s' "$value" | vercel env add "$name" production
+            echo "✅ Pushed $name to Vercel"
           }
 
           push_env "SUPABASE_URL"         "$V_SUPABASE_URL"
           push_env "SUPABASE_SERVICE_KEY" "$V_SUPABASE_SERVICE_KEY"
 
       - name: Pull Vercel project metadata
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production
 
       - name: Build for production
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod
 
       - name: Deploy prebuilt artifact to Vercel
         id: deploy
         shell: bash
         run: |
-          DEPLOY_OUTPUT=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }} 2>&1)
+          set -euo pipefail
+          DEPLOY_OUTPUT=$(vercel deploy --prebuilt --prod 2>&1)
           echo "$DEPLOY_OUTPUT"
-          # Extract the https:// URL from the output
           DEPLOY_URL=$(echo "$DEPLOY_OUTPUT" | grep -Eo 'https://[^ ]+\.vercel\.app' | tail -1)
           if [ -z "$DEPLOY_URL" ]; then
             echo "❌ Could not extract deployment URL" >&2
