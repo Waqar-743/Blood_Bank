@@ -15,7 +15,10 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(morgan('dev'));
 
-// Serve frontend files
+// Serve static files (bundled into the function via @vercel/node).
+// backend/public/ holds image assets; frontend/ and Landing Page.html
+// live at the repo root and are reached via path.join(__dirname, '..').
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 app.use(express.static(path.join(__dirname, '..')));
 app.get('/', (_req, res) => {
