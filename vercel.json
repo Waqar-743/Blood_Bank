@@ -3,15 +3,7 @@
   "builds": [
     {
       "src": "backend/server.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": [
-          "image/**",
-          "frontend/**",
-          "assets/**",
-          "Landing Page.html"
-        ]
-      }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
