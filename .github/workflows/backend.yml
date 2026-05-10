@@ -1,0 +1,283 @@
+name: Backend CI
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    branches: ["**"]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # JOB 1 — Install + Syntax + Audit
+  # ──────────────────────────────────────────────────────────────
+  lint-and-audit:
+    name: "Install, Syntax & Audit"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci --prefer-offline
+
+      - name: Syntax check all backend JS files
+        shell: bash
+        run: |
+          set -euo pipefail
+          ALL_OK=true
+          for f in backend/*.js; do
+            if node --check "$f" 2>&1; then
+              echo "✅ $f"
+            else
+              echo "❌ $f"
+              ALL_OK=false
+            fi
+          done
+          [ "$ALL_OK" = "true" ] || exit 1
+
+      - name: Security audit (high severity)
+        working-directory: backend
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  # ──────────────────────────────────────────────────────────────
+  # JOB 2 — Live API smoke tests (all endpoints)
+  # Requires SUPABASE_URL + SUPABASE_SERVICE_KEY secrets.
+  # If secrets are absent → runs syntax-only and exits cleanly.
+  # ──────────────────────────────────────────────────────────────
+  api-smoke:
+    name: "API Smoke Tests"
+    needs: lint-and-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+      PORT: 3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci --prefer-offline
+
+      - name: Start server
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_KEY:-}" ]; then
+            echo "⚠️  SUPABASE_URL / SUPABASE_SERVICE_KEY secrets not configured."
+            echo "    Add them in: GitHub → Settings → Secrets → Actions"
+            echo "    Skipping live tests — syntax-only pass."
+            exit 0
+          fi
+
+          node backend/server.js > server.log 2>&1 &
+          echo "$!" > server.pid
+
+          echo "Waiting for server on :${PORT}..."
+          for i in $(seq 1 30); do
+            if curl -fsS "http://127.0.0.1:${PORT}/api/blood-groups" > /dev/null 2>&1; then
+              echo "✅ Server ready (${i}s)"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "❌ Server did not start within 30s" >&2
+          cat server.log >&2
+          exit 1
+
+      - name: Test GET endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [ -z "${SUPABASE_URL:-}" ] && echo "⚠️  No secrets — skipping" && exit 0
+
+          BASE="http://127.0.0.1:${PORT}"
+
+          hit() {
+            local label="$1"
+            local url="$2"
+            local out
+            out=$(curl -fsS "$url") || { echo "❌ FAIL (HTTP error): $label"; return 1; }
+            local ok
+            ok=$(echo "$out" | node -e "
+              let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+                try { const j=JSON.parse(d); process.exit(j.success===true?0:1); }
+                catch(e){ process.exit(1); }
+              });
+            " 2>/dev/null && echo "true" || echo "false")
+            if [ "$ok" = "true" ]; then
+              echo "✅ PASS: $label"
+            else
+              echo "❌ FAIL: $label — $(echo "$out" | head -c 200)"
+              return 1
+            fi
+          }
+
+          FAIL=0
+          hit "GET /api/blood-groups"        "$BASE/api/blood-groups"        || FAIL=1
+          hit "GET /api/blood-banks"         "$BASE/api/blood-banks"         || FAIL=1
+          hit "GET /api/hospitals"           "$BASE/api/hospitals"           || FAIL=1
+          hit "GET /api/staff"               "$BASE/api/staff"               || FAIL=1
+          hit "GET /api/donors"              "$BASE/api/donors"              || FAIL=1
+          hit "GET /api/donations"           "$BASE/api/donations"           || FAIL=1
+          hit "GET /api/inventory"           "$BASE/api/inventory"           || FAIL=1
+          hit "GET /api/inventory/summary"   "$BASE/api/inventory/summary"   || FAIL=1
+          hit "GET /api/patients"            "$BASE/api/patients"            || FAIL=1
+          hit "GET /api/requests"            "$BASE/api/requests"            || FAIL=1
+          hit "GET /api/stats"               "$BASE/api/stats"               || FAIL=1
+
+          [ "$FAIL" -eq 0 ] || exit 1
+
+      - name: Test POST → GET → DELETE (donor CRUD)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [ -z "${SUPABASE_URL:-}" ] && exit 0
+
+          BASE="http://127.0.0.1:${PORT}"
+
+          # ── Get a valid blood_group_id first ─────────────────────
+          BG_RESP=$(curl -fsS "$BASE/api/blood-groups")
+          BG_ID=$(echo "$BG_RESP" | node -e "
+            let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const j=JSON.parse(d);
+              if(j.success && j.data.length) console.log(j.data[0].blood_group_id);
+              else process.exit(1);
+            });
+          ")
+          echo "Using blood_group_id: $BG_ID"
+
+          # ── POST: create donor ────────────────────────────────────
+          CREATE=$(curl -fsS -X POST "$BASE/api/donors" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"first_name\":\"CI\",
+              \"last_name\":\"TestDonor\",
+              \"dob\":\"2000-01-01\",
+              \"gender\":\"Male\",
+              \"phone\":\"0300-CI-TEST\",
+              \"blood_group_id\":$BG_ID,
+              \"weight_kg\":70
+            }")
+          echo "$CREATE"
+
+          DONOR_ID=$(echo "$CREATE" | node -e "
+            let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const j=JSON.parse(d);
+              if(j.success && j.data.donor_id) console.log(j.data.donor_id);
+              else process.exit(1);
+            });
+          ")
+          echo "✅ PASS: POST /api/donors — created donor_id=$DONOR_ID"
+
+          # ── GET: fetch created donor ──────────────────────────────
+          GET_RES=$(curl -fsS "$BASE/api/donors/$DONOR_ID")
+          FOUND=$(echo "$GET_RES" | node -e "
+            let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const j=JSON.parse(d);
+              process.exit(j.success===true?0:1);
+            });
+          " && echo "true" || echo "false")
+          [ "$FOUND" = "true" ] && echo "✅ PASS: GET /api/donors/:id" || { echo "❌ FAIL: GET /api/donors/:id"; exit 1; }
+
+          # ── DELETE (soft): deactivate donor ──────────────────────
+          DEL_RES=$(curl -fsS -X DELETE "$BASE/api/donors/$DONOR_ID")
+          DEL_OK=$(echo "$DEL_RES" | node -e "
+            let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const j=JSON.parse(d);
+              process.exit(j.success===true?0:1);
+            });
+          " && echo "true" || echo "false")
+          [ "$DEL_OK" = "true" ] && echo "✅ PASS: DELETE /api/donors/:id" || { echo "❌ FAIL: DELETE /api/donors/:id"; exit 1; }
+
+      - name: Test POST blood request
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [ -z "${SUPABASE_URL:-}" ] && exit 0
+
+          BASE="http://127.0.0.1:${PORT}"
+
+          # Get first hospital_id and blood_group_id
+          HOSP_ID=$(curl -fsS "$BASE/api/hospitals" | node -e "
+            let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const j=JSON.parse(d);
+              if(j.success && j.data.length) console.log(j.data[0].hospital_id);
+              else process.exit(1);
+            });
+          ")
+          BG_ID=$(curl -fsS "$BASE/api/blood-groups" | node -e "
+            let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const j=JSON.parse(d);
+              if(j.success && j.data.length) console.log(j.data[0].blood_group_id);
+              else process.exit(1);
+            });
+          ")
+
+          REQ_RES=$(curl -fsS -X POST "$BASE/api/requests" \
+            -H "Content-Type: application/json" \
+            -d "{\"hospital_id\":$HOSP_ID,\"blood_group_id\":$BG_ID,\"units_requested\":1,\"urgency_level\":\"low\",\"notes\":\"CI test request\"}")
+          echo "$REQ_RES"
+
+          REQ_OK=$(echo "$REQ_RES" | node -e "
+            let d=''; process.stdin.on('data',c=>d+=c).on('end',()=>{
+              const j=JSON.parse(d);
+              process.exit(j.success===true?0:1);
+            });
+          " && echo "true" || echo "false")
+          [ "$REQ_OK" = "true" ] && echo "✅ PASS: POST /api/requests" || { echo "❌ FAIL: POST /api/requests"; exit 1; }
+
+      - name: Stop server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f server.pid ]; then
+            kill "$(cat server.pid)" 2>/dev/null || true
+            echo "Server stopped."
+          fi
+
+      - name: Upload server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: server-log-${{ github.run_number }}
+          path: server.log
+          if-no-files-found: ignore

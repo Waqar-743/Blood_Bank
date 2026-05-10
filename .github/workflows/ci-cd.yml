@@ -1,9 +1,7 @@
-name: CI/CD — Blood Bank Backend + Deploy to Vercel
+name: Deploy to Vercel (Production)
 
 on:
   push:
-    branches: [main, master]
-  pull_request:
     branches: [main, master]
   workflow_dispatch:
 
@@ -11,162 +9,17 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-cd-${{ github.ref }}
+  group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
 # ─────────────────────────────────────────────────────────────
-# JOB 1 — Validate required files exist
+# Deploy to Vercel
+# Requires secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID,
+#                   SUPABASE_URL, SUPABASE_SERVICE_KEY
 # ─────────────────────────────────────────────────────────────
 jobs:
-  validate-assets:
-    name: "🗂 Validate required files"
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Verify required files
-        shell: bash
-        run: |
-          set -euo pipefail
-          required_files=(
-            "Landing Page.html"
-            "frontend/admin/index.html"
-            "frontend/admin/login.html"
-            "backend/server.js"
-            "backend/supabase.js"
-            "backend/package.json"
-            "backend/package-lock.json"
-            "vercel.json"
-            "sql/supabase_schema.sql"
-            "sql/supabase_seed.sql"
-          )
-          ALL_OK=true
-          for f in "${required_files[@]}"; do
-            if [ ! -s "$f" ]; then
-              echo "❌ Missing or empty: $f" >&2
-              ALL_OK=false
-            else
-              echo "✅ ok: $f"
-            fi
-          done
-          [ "$ALL_OK" = true ] || exit 1
-
-# ─────────────────────────────────────────────────────────────
-# JOB 2 — Backend: install → syntax check → live smoke test
-# ─────────────────────────────────────────────────────────────
-  backend-smoke:
-    name: "🧪 Backend smoke test"
-    needs: validate-assets
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-      SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-      PORT: 3000
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Install backend dependencies
-        working-directory: backend
-        run: npm ci --prefer-offline
-
-      - name: Syntax check
-        run: |
-          node --check backend/server.js
-          node --check backend/supabase.js
-          echo "✅ Syntax OK"
-
-      - name: Start server & smoke test live endpoints
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_SERVICE_KEY:-}" ]; then
-            echo "⚠️  Supabase secrets not set — syntax-only pass (no live test)"
-            exit 0
-          fi
-
-          node backend/server.js > server.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
-
-          echo "Waiting for server on :3000 ..."
-          READY=0
-          for i in $(seq 1 30); do
-            if curl -fsS "http://127.0.0.1:3000/api/blood-groups" > /dev/null 2>&1; then
-              READY=1; echo "Server ready after ${i}s"; break
-            fi
-            sleep 1
-          done
-
-          if [ "$READY" -ne 1 ]; then
-            echo "❌ Server failed to start within 30s" >&2
-            cat server.log >&2
-            exit 1
-          fi
-
-          curl -fsS http://127.0.0.1:3000/api/blood-groups     -o blood-groups.json
-          curl -fsS http://127.0.0.1:3000/api/inventory/summary -o inventory.json
-          curl -fsS http://127.0.0.1:3000/api/donors            -o donors.json
-          curl -fsS http://127.0.0.1:3000/api/stats             -o stats.json
-
-          node - <<'EOF'
-          const fs = require('fs');
-          const checks = [
-            ['blood-groups', d => d.success && Array.isArray(d.data)],
-            ['inventory',    d => d.success && (Array.isArray(d.data) || typeof d.data === 'object')],
-            ['donors',       d => d.success && Array.isArray(d.data)],
-            ['stats',        d => d.success && typeof d.data === 'object' && 'totalDonors' in d.data],
-          ];
-          let allOk = true;
-          for (const [name, fn] of checks) {
-            let d;
-            try { d = JSON.parse(fs.readFileSync(name + '.json', 'utf8')); }
-            catch (e) { console.error('FAIL (parse):', name, e.message); allOk = false; continue; }
-            if (!fn(d)) {
-              console.error('FAIL:', name, JSON.stringify(d).slice(0, 300));
-              allOk = false;
-            } else {
-              console.log('PASS:', name);
-            }
-          }
-          if (!allOk) process.exit(1);
-          EOF
-
-      - name: Upload server log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: server-log
-          path: server.log
-          if-no-files-found: ignore
-
-# ─────────────────────────────────────────────────────────────
-# JOB 3 — Deploy to Vercel
-# Skips gracefully if VERCEL_TOKEN secret is not configured.
-#
-# Add these 5 secrets in: GitHub repo → Settings → Secrets → Actions
-#   VERCEL_TOKEN         vercel.com → Account Settings → Tokens → Create
-#   VERCEL_ORG_ID        vercel.com → Team Settings → General → Team ID
-#   VERCEL_PROJECT_ID    vercel.com → Project → Settings → General → Project ID
-#   SUPABASE_URL         https://<ref>.supabase.co
-#   SUPABASE_SERVICE_KEY Supabase → Project Settings → API → service_role key
-# ─────────────────────────────────────────────────────────────
   deploy-vercel:
-    name: "🚀 Deploy to Vercel"
-    if: github.event_name != 'pull_request'
-    needs: [validate-assets, backend-smoke]
+    name: "Deploy to Vercel"
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -178,28 +31,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ── Gate: skip all Vercel steps if token is missing ──────
       - name: Check Vercel secrets are present
         id: gate
         shell: bash
         run: |
           if [ -z "${VERCEL_TOKEN:-}" ] || [ -z "${VERCEL_ORG_ID:-}" ] || [ -z "${VERCEL_PROJECT_ID:-}" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo ""
             echo "════════════════════════════════════════════════"
             echo "  ⚠️  VERCEL DEPLOYMENT SKIPPED"
-            echo "  One or more required secrets are missing."
-            echo ""
-            echo "  Add these in GitHub repo →"
-            echo "  Settings → Secrets and variables → Actions:"
-            echo ""
-            echo "  VERCEL_TOKEN       (length: ${#VERCEL_TOKEN})"
-            echo "  VERCEL_ORG_ID      (length: ${#VERCEL_ORG_ID})"
-            echo "  VERCEL_PROJECT_ID  (length: ${#VERCEL_PROJECT_ID})"
-            echo ""
-            echo "  Get VERCEL_TOKEN:  vercel.com → Account → Tokens"
-            echo "  Get VERCEL_ORG_ID: vercel.com → Team → Settings"
-            echo "  Get PROJECT_ID:    vercel.com → Project → Settings"
+            echo "  Add these secrets in GitHub → Settings → Secrets → Actions:"
+            echo "  VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID"
             echo "════════════════════════════════════════════════"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -210,7 +51,7 @@ jobs:
         if: steps.gate.outputs.skip != 'true'
         run: npm install -g vercel@latest --silent
 
-      - name: Push Supabase env vars to Vercel (REST API)
+      - name: Push Supabase env vars to Vercel
         if: steps.gate.outputs.skip != 'true'
         shell: bash
         env:
@@ -220,19 +61,15 @@ jobs:
           set -euo pipefail
 
           push_env() {
-            local KEY="$1"
-            local VALUE="$2"
-            if [ -z "$VALUE" ]; then
-              echo "⚠️  $KEY is empty — skipping"
-              return
-            fi
+            local KEY="$1" VALUE="$2"
+            [ -z "$VALUE" ] && echo "⚠️  $KEY is empty — skipping" && return
             HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
               -X POST "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env" \
               -H "Authorization: Bearer ${VERCEL_TOKEN}" \
               -H "Content-Type: application/json" \
               -d "{\"key\":\"${KEY}\",\"value\":\"${VALUE}\",\"type\":\"encrypted\",\"target\":[\"production\"]}")
             if [ "$HTTP" = "200" ] || [ "$HTTP" = "201" ] || [ "$HTTP" = "409" ]; then
-              echo "✅ ${KEY} pushed to Vercel (HTTP $HTTP)"
+              echo "✅ ${KEY} pushed (HTTP $HTTP)"
             else
               echo "⚠️  ${KEY} returned HTTP $HTTP — may already exist, continuing"
             fi
@@ -285,13 +122,10 @@ jobs:
           echo "❌ Endpoint did not return 200 within 150s" >&2
           exit 1
 
-      - name: "📢 Deployment summary"
+      - name: Deployment summary
         if: steps.gate.outputs.skip != 'true' && success()
         run: |
           echo "============================================="
-          echo "  🩸 Blood Bank API — LIVE"
+          echo "  Blood Bank API — LIVE"
           echo "  URL: ${{ steps.deploy.outputs.url }}"
-          echo "  /api/blood-groups  /api/donors"
-          echo "  /api/donations     /api/inventory"
-          echo "  /api/stats"
           echo "============================================="

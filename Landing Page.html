@@ -1,338 +1,37 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Nutech Blood Bank — Every Drop, A Lifeline</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<meta name="description" content="Nutech Blood Bank mobilises donors, hospitals and crisis responders into one resilient blood supply chain across Pakistan."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="preload" as="image" href="image/Hope.jpg" fetchpriority="high"/>
+<link rel="preload" as="style" href="/css/landing.css"/>
+<link rel="stylesheet" href="/css/landing.css"/>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          cream:  { 50:'#FDFBF7', 100:'#F8F4EC', 200:'#EFE8DA' },
+          ink:    { 700:'#2A2520', 900:'#1A1612', 950:'#0E0B08' },
+          crimson:{ 400:'#E04550', 500:'#D02830', 700:'#A41E26' },
+          sand:   { 400:'#B0A090', 500:'#8A7A6A' },
+        }
+      }
+    }
+  }
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
-<style>
-  :root{
-    --cream:#FDFBF7; --cream-2:#F8F4EC; --cream-3:#EFE8DA;
-    --ink:#0E0B08; --ink-2:#1A1612;
-    --crimson:#D02830; --crimson-d:#A41E26; --crimson-deeper:#6B1118;
-    --teal:#2BA8A0; --teal-d:#1F8B85;
-    --ease: cubic-bezier(0.32, 0.72, 0, 1);
-    --ease-soft: cubic-bezier(0.22, 0.61, 0.36, 1);
-  }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--cream);
-    color: var(--ink);
-    font-family: 'Geist', sans-serif;
-    -webkit-font-smoothing: antialiased;
-    font-feature-settings: "ss01","ss02","cv11";
-  }
-  .serif { font-family: 'Fraunces', serif; font-variation-settings: "opsz" 144, "SOFT" 50; letter-spacing: -0.025em; }
-  .serif-italic { font-family: 'Instrument Serif', serif; font-style: italic; letter-spacing: -0.015em; }
-  .mono { font-family: 'Geist Mono', monospace; }
-
-  /* Fixed paper grain overlay (per perf rules) */
-  .grain-fx {
-    position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: .035; mix-blend-mode: multiply;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0.05 0 0 0 0 0.04 0 0 0 0 0.03 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
-  }
-
-  /* Hairlines — warm */
-  .hairline   { border-color: rgba(14,11,8,0.10); }
-  .hairline-b { border-bottom: 1px solid rgba(14,11,8,0.10); }
-  .hairline-t { border-top: 1px solid rgba(14,11,8,0.10); }
-  .hairline-d   { border-color: rgba(253,251,247,0.12); }
-  .hairline-d-b { border-bottom: 1px solid rgba(253,251,247,0.12); }
-  .hairline-d-t { border-top: 1px solid rgba(253,251,247,0.12); }
-
-  /* === DOUBLE-BEZEL CARDS === */
-  .bezel {
-    background: rgba(14,11,8,0.04);
-    border: 1px solid rgba(14,11,8,0.06);
-    padding: 6px;
-    border-radius: 2rem;
-    transition: transform .7s var(--ease), box-shadow .7s var(--ease), border-color .7s var(--ease);
-  }
-  .bezel:hover { border-color: rgba(164,30,38,0.35); transform: translateY(-2px); box-shadow: 0 28px 60px -36px rgba(164,30,38,0.35); }
-  .bezel-inner {
-    background: var(--cream);
-    border-radius: calc(2rem - 0.375rem);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), inset 0 -1px 0 rgba(14,11,8,0.04);
-  }
-  .bezel-dark {
-    background: rgba(253,251,247,0.04);
-    border: 1px solid rgba(253,251,247,0.08);
-    padding: 6px;
-    border-radius: 2rem;
-    transition: transform .7s var(--ease), box-shadow .7s var(--ease), border-color .7s var(--ease);
-  }
-  .bezel-dark:hover { border-color: rgba(200,50,58,0.5); transform: translateY(-2px); }
-  .bezel-dark-inner {
-    background: #15110D;
-    border-radius: calc(2rem - 0.375rem);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), inset 0 -1px 0 rgba(0,0,0,0.4);
-  }
-
-  /* === ISLAND PILL BUTTONS === */
-  .pill {
-    display:inline-flex; align-items:center; gap:.5rem;
-    padding: 0.6rem 0.6rem 0.6rem 1.4rem;
-    border-radius: 9999px;
-    font-weight: 500; font-size: 14px; letter-spacing:-0.01em;
-    transition: transform .5s var(--ease), background-color .5s var(--ease), color .5s var(--ease);
-    will-change: transform;
-  }
-  .pill:active { transform: scale(0.98); }
-  .pill-knob {
-    width: 2rem; height: 2rem; border-radius: 9999px;
-    display:inline-flex; align-items:center; justify-content:center;
-    transition: transform .5s var(--ease), background-color .5s var(--ease);
-  }
-  .pill-dark { background: var(--ink); color: var(--cream); }
-  .pill-dark .pill-knob { background: rgba(253,251,247,0.12); }
-  .pill-dark:hover .pill-knob { background: var(--crimson); transform: translate(2px,-1px) scale(1.05); }
-
-  .pill-crimson { background: var(--crimson); color: var(--cream); }
-  .pill-crimson .pill-knob { background: rgba(0,0,0,0.18); }
-  .pill-crimson:hover .pill-knob { background: rgba(0,0,0,0.35); transform: translate(2px,-1px) scale(1.05); }
-  .pill-crimson:hover { background: var(--crimson-d); }
-
-  .pill-ghost { background: transparent; color: var(--ink); border:1px solid rgba(14,11,8,0.18); padding-left: 1.4rem; }
-  .pill-ghost .pill-knob { background: rgba(14,11,8,0.06); }
-  .pill-ghost:hover { background: rgba(14,11,8,0.04); }
-  .pill-ghost:hover .pill-knob { background: var(--ink); color: var(--cream); transform: translate(2px,-1px) scale(1.05); }
-  .pill-ghost:hover .pill-knob svg { stroke: var(--cream); }
-
-  .pill-ghost-d { background: transparent; color: var(--cream); border:1px solid rgba(253,251,247,0.18); padding-left: 1.4rem; }
-  .pill-ghost-d .pill-knob { background: rgba(253,251,247,0.08); }
-  .pill-ghost-d:hover { background: rgba(253,251,247,0.06); }
-  .pill-ghost-d:hover .pill-knob { background: var(--cream); transform: translate(2px,-1px) scale(1.05); }
-  .pill-ghost-d:hover .pill-knob svg { stroke: var(--ink); }
-
-  /* === EYEBROW TAGS === */
-  .eyebrow {
-    display:inline-flex; align-items:center; gap:.5rem;
-    padding: 4px 10px; border-radius: 9999px;
-    font-family: 'Geist Mono', monospace;
-    font-size: 10px; font-weight: 500;
-    text-transform: uppercase; letter-spacing: 0.2em;
-    background: rgba(14,11,8,0.04); color: var(--ink);
-    border: 1px solid rgba(14,11,8,0.08);
-  }
-  .eyebrow-d { background: rgba(253,251,247,0.06); color: var(--cream); border-color: rgba(253,251,247,0.12); }
-  .eyebrow-crimson { background: rgba(164,30,38,0.10); color: var(--crimson); border-color: rgba(164,30,38,0.25); }
-
-  /* === FLUID NAV === */
-  .nav-pill {
-    transition: padding .7s var(--ease), background-color .7s var(--ease), backdrop-filter .7s var(--ease), max-width .7s var(--ease);
-    backdrop-filter: blur(20px) saturate(160%);
-    -webkit-backdrop-filter: blur(20px) saturate(160%);
-  }
-
-  /* === MOTION === */
-  @keyframes scroll-x { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-  .marquee-track { animation: scroll-x 42s linear infinite; }
-  @keyframes scroll-x-rev { from { transform: translateX(-50%); } to { transform: translateX(0); } }
-  .marquee-rev { animation: scroll-x-rev 56s linear infinite; }
-
-  @keyframes pulse-ring { 0% { box-shadow:0 0 0 0 rgba(164,30,38,.55); } 70% { box-shadow:0 0 0 14px rgba(164,30,38,0); } 100% { box-shadow:0 0 0 0 rgba(164,30,38,0); } }
-  .pulse-dot { width:8px; height:8px; border-radius:9999px; background:var(--crimson); animation: pulse-ring 1.8s infinite; }
-
-  @keyframes heartbeat { 0%,28%,70%,100% { transform: scale(1); } 14% { transform: scale(1.08); } 20% { transform: scale(0.96); } 42% { transform: scale(1.04); } }
-  .heartbeat { animation: heartbeat 1.6s ease-in-out infinite; transform-origin: center; }
-
-  @keyframes float-y { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-  .float-y { animation: float-y 7s ease-in-out infinite; }
-
-  @keyframes spin-slow { to { transform: rotate(360deg); } }
-  .spin-slow { animation: spin-slow 28s linear infinite; }
-
-  @keyframes wave-x { 0%,100% { transform: translateX(0); } 50% { transform: translateX(-8px); } }
-  .wave { animation: wave-x 6s ease-in-out infinite; transform-origin: center; }
-
-  @keyframes ping-circ { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.4); opacity: 0; } }
-  .ping { position:absolute; inset:0; border-radius:9999px; background:var(--crimson); animation: ping-circ 1.6s ease-out infinite; }
-
-  /* === SCROLL REVEAL === */
-  .reveal   { opacity:0; transform: translateY(28px); filter: blur(6px); transition: opacity 1s var(--ease), transform 1s var(--ease), filter 1s var(--ease); }
-  .reveal.in { opacity:1; transform:none; filter:none; }
-  .reveal-l { opacity:0; transform: translateX(-32px); filter: blur(6px); transition: opacity 1s var(--ease), transform 1s var(--ease), filter 1s var(--ease); }
-  .reveal-l.in { opacity:1; transform:none; filter:none; }
-  .reveal-r { opacity:0; transform: translateX(32px); filter: blur(6px); transition: opacity 1s var(--ease), transform 1s var(--ease), filter 1s var(--ease); }
-  .reveal-r.in { opacity:1; transform:none; filter:none; }
-
-  .stagger > * { opacity:0; transform: translateY(24px); filter: blur(4px); transition: opacity .9s var(--ease), transform .9s var(--ease), filter .9s var(--ease); }
-  .stagger.in > * { opacity:1; transform:none; filter:none; }
-  .stagger.in > *:nth-child(1) { transition-delay: 60ms; }
-  .stagger.in > *:nth-child(2) { transition-delay: 140ms; }
-  .stagger.in > *:nth-child(3) { transition-delay: 220ms; }
-  .stagger.in > *:nth-child(4) { transition-delay: 300ms; }
-  .stagger.in > *:nth-child(5) { transition-delay: 380ms; }
-  .stagger.in > *:nth-child(6) { transition-delay: 460ms; }
-  .stagger.in > *:nth-child(7) { transition-delay: 540ms; }
-  .stagger.in > *:nth-child(8) { transition-delay: 620ms; }
-
-  /* === TYPOGRAPHIC LINE — ANIMATED CHARS === */
-  .word { display:inline-block; overflow:hidden; vertical-align: bottom; }
-  .word > span { display:inline-block; transform: translateY(110%); transition: transform 1.1s var(--ease); }
-  .word.in > span { transform: translateY(0); }
-
-  /* === ECG line === */
-  .ecg path { stroke-dasharray: 1000; stroke-dashoffset: 1000; }
-  .ecg.in path { animation: draw 3s ease forwards infinite; }
-  @keyframes draw { from { stroke-dashoffset: 1000; } to { stroke-dashoffset: 0; } }
-
-  /* === Mobile menu === */
-  .menu-overlay { transition: opacity .6s var(--ease); }
-  .menu-link { transform: translateY(2rem); opacity: 0; transition: transform .8s var(--ease), opacity .8s var(--ease); }
-  .menu-overlay.open .menu-link { transform: translateY(0); opacity: 1; }
-  .menu-overlay.open .menu-link:nth-child(1) { transition-delay: 80ms; }
-  .menu-overlay.open .menu-link:nth-child(2) { transition-delay: 160ms; }
-  .menu-overlay.open .menu-link:nth-child(3) { transition-delay: 240ms; }
-  .menu-overlay.open .menu-link:nth-child(4) { transition-delay: 320ms; }
-  .menu-overlay.open .menu-link:nth-child(5) { transition-delay: 400ms; }
-  .menu-overlay.open .menu-link:nth-child(6) { transition-delay: 480ms; }
-  .menu-overlay.open .menu-link:nth-child(7) { transition-delay: 560ms; }
-
-  .burger { width: 18px; height: 14px; position: relative; }
-  .burger span { position: absolute; left: 0; right: 0; height: 1.4px; background: currentColor; transition: transform .6s var(--ease), opacity .3s var(--ease), top .6s var(--ease); border-radius: 2px; }
-  .burger span:nth-child(1) { top: 2px; }
-  .burger span:nth-child(2) { top: 11px; }
-  .burger.open span:nth-child(1) { top: 6.5px; transform: rotate(45deg); }
-  .burger.open span:nth-child(2) { top: 6.5px; transform: rotate(-45deg); }
-
-  /* === DETAILS === */
-  details summary::-webkit-details-marker { display: none; }
-  details summary { list-style: none; }
-  details[open] .faq-arrow { transform: rotate(45deg); }
-  .faq-arrow { transition: transform .5s var(--ease); }
-
-  /* === Cascade rotations (Z-axis micro) === */
-  .cascade-1 { transform: rotate(-1.5deg); }
-  .cascade-2 { transform: rotate(1.5deg); }
-  @media (max-width: 768px) {
-    .cascade-1, .cascade-2 { transform: none; }
-  }
-
-  /* Counter glow */
-  .counter { transition: text-shadow .6s var(--ease); }
-  .counter:hover { text-shadow: 0 0 32px rgba(164,30,38,.35); }
-
-  /* === PREMIUM IMAGE TREATMENTS === */
-  .photo-frame { position: relative; overflow: hidden; border-radius: calc(2rem - 0.375rem); }
-  .photo-frame::after {
-    content:''; position:absolute; inset:0; pointer-events:none;
-    background: linear-gradient(180deg, rgba(14,11,8,0) 40%, rgba(14,11,8,0.55) 100%);
-  }
-  .photo-frame img { width:100%; height:100%; object-fit: cover; transition: transform 1.4s var(--ease), filter 1.4s var(--ease); display:block; }
-  .photo-frame:hover img { transform: scale(1.06); filter: saturate(1.08); }
-  .photo-frame .caption { position:absolute; left:0; right:0; bottom:0; padding:18px 22px; color:#FDFBF7; z-index:2; }
-
-  /* Hero portrait */
-  .hero-portrait {
-    position: relative; border-radius: 2rem; overflow: hidden;
-    box-shadow: 0 40px 80px -32px rgba(14,11,8,0.4), 0 0 0 6px rgba(14,11,8,0.04);
-  }
-  .hero-portrait img { width: 100%; height: 100%; object-fit: cover; display:block; }
-  .hero-portrait::after {
-    content:''; position:absolute; inset:0; pointer-events:none;
-    background: linear-gradient(160deg, rgba(208,40,48,0.08) 0%, rgba(43,168,160,0.10) 100%);
-    mix-blend-mode: multiply;
-  }
-
-  /* Section background photo */
-  .bg-photo {
-    position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  }
-  .bg-photo img { width: 100%; height: 100%; object-fit: cover; opacity: 0.18; filter: saturate(0.85) contrast(1.05); }
-  .bg-photo::after {
-    content:''; position:absolute; inset:0;
-    background: linear-gradient(180deg, rgba(253,251,247,0.75) 0%, rgba(253,251,247,0.95) 80%);
-  }
-  .bg-photo-dark::after {
-    background: linear-gradient(180deg, rgba(14,11,8,0.55) 0%, rgba(14,11,8,0.92) 80%);
-  }
-
-  /* Donor mosaic */
-  .mosaic {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    grid-auto-rows: 110px;
-    gap: 10px;
-  }
-  .mosaic > div { position: relative; overflow: hidden; border-radius: 18px; }
-  .mosaic img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s var(--ease); }
-  .mosaic > div:hover img { transform: scale(1.08); }
-  .mosaic > div::after {
-    content:''; position:absolute; inset:0; pointer-events:none;
-    background: linear-gradient(180deg, transparent 55%, rgba(14,11,8,0.55) 100%);
-  }
-  .m-tall  { grid-column: span 2; grid-row: span 3; }
-  .m-wide  { grid-column: span 4; grid-row: span 2; }
-  .m-sq    { grid-column: span 2; grid-row: span 2; }
-  .m-half  { grid-column: span 3; grid-row: span 2; }
-  @media (max-width: 768px) {
-    .mosaic { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 130px; }
-    .m-tall, .m-wide, .m-sq, .m-half { grid-column: span 2; grid-row: span 2; }
-  }
-
-  /* Logo glow */
-  .logo-img { filter: drop-shadow(0 4px 12px rgba(208,40,48,0.18)); }
-
-  /* Underline draw */
-  .ulink { position: relative; }
-  .ulink::after { content:''; position:absolute; left:0; right:0; bottom:-3px; height:1px; background: currentColor; transform: scaleX(0); transform-origin: left center; transition: transform .6s var(--ease); }
-  .ulink:hover::after { transform: scaleX(1); }
-
-  /* === PERF: off-screen sections render cheaper === */
-  section { content-visibility: auto; contain-intrinsic-size: 1px 900px; }
-
-  /* === MOBILE TUNING === */
-  @media (max-width: 640px) {
-    /* Tame oversized serif display headings on small phones */
-    h1.serif, h2.serif { font-size: 44px !important; line-height: 1.02 !important; }
-    /* Tighten section vertical rhythm */
-    section { padding-top: 64px !important; padding-bottom: 64px !important; }
-    /* Disable expensive blur on reveal — saves paint cost on low-end phones */
-    .reveal, .reveal-l, .reveal-r, .stagger > * { filter: none !important; }
-    /* Reduce backdrop-filter cost on nav */
-    .nav-pill { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-    /* Hide grain overlay on mobile (paint cost, no visual gain at small size) */
-    .grain-fx { display: none; }
-  }
-
-  /* Respect reduced motion */
-  @media (prefers-reduced-motion: reduce) {
-    .marquee-track, .marquee-rev, .pulse-dot, .heartbeat, .float-y,
-    .spin-slow, .wave, .ping, .ldr-drop { animation: none !important; }
-    .reveal, .reveal-l, .reveal-r, .stagger > * { transition: none !important; opacity: 1 !important; transform: none !important; filter: none !important; }
-  }
-
-  /* === PAGE LOADER === */
-  #page-loader {
-    position: fixed; inset: 0; z-index: 9999;
-    background: var(--cream);
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    transition: opacity .65s var(--ease), visibility .65s;
-  }
-  #page-loader.done { opacity: 0; visibility: hidden; pointer-events: none; }
-  @keyframes ldr-brand-in {
-    from { opacity: 0; transform: translateY(14px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-  .ldr-brand { animation: ldr-brand-in .7s var(--ease) forwards; }
-  @keyframes ldr-drop-pulse {
-    0%, 100% { filter: drop-shadow(0 0 0px rgba(208,40,48,0)); }
-    50%       { filter: drop-shadow(0 0 12px rgba(208,40,48,0.35)); }
-  }
-  .ldr-drop { animation: ldr-drop-pulse 2s ease-in-out infinite; }
-</style>
 </head>
 <body class="overflow-x-hidden">
 
 <!-- ============== PAGE LOADER ============== -->
 <div id="page-loader" role="progressbar" aria-label="Loading Nutech Blood Bank">
   <div class="ldr-brand flex flex-col items-center gap-7">
-    <!-- Animated blood drop -->
     <div class="ldr-drop" style="width:60px;height:80px">
       <svg viewBox="0 0 60 80" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%">
         <defs>
@@ -350,14 +49,12 @@
         <ellipse cx="21" cy="48" rx="3.5" ry="9" fill="white" opacity="0.3"/>
       </svg>
     </div>
-    <!-- Brand name -->
     <div class="text-center">
       <div class="serif font-semibold text-ink-950 text-[20px] tracking-tight leading-none">
         Nutech<span style="color:var(--crimson)">·</span>Blood
       </div>
       <div class="mono text-[10px] tracking-[0.25em] text-sand-500 mt-2" id="ldr-status">LOADING</div>
     </div>
-    <!-- Progress bar -->
     <div style="width:160px;height:2px;background:rgba(14,11,8,0.08);border-radius:9999px;overflow:hidden">
       <div id="ldr-bar"
            style="height:100%;width:0%;background:var(--crimson);border-radius:9999px;transition:width .3s ease"></div>
@@ -376,12 +73,12 @@
         <span class="serif font-semibold text-[15px] tracking-tight">Nutech<span class="text-crimson-500">·</span>Blood</span>
       </a>
       <nav class="hidden lg:flex items-center text-[13px] text-ink-700">
-        <a href="#stock" class="px-3 py-1.5 rounded-full hover:bg-ink-950/5 transition-colors duration-500">Reserves</a>
+        <a href="#stock"   class="px-3 py-1.5 rounded-full hover:bg-ink-950/5 transition-colors duration-500">Reserves</a>
         <a href="#process" class="px-3 py-1.5 rounded-full hover:bg-ink-950/5 transition-colors duration-500">Process</a>
         <a href="#mission" class="px-3 py-1.5 rounded-full hover:bg-ink-950/5 transition-colors duration-500">Mission</a>
-        <a href="#impact" class="px-3 py-1.5 rounded-full hover:bg-ink-950/5 transition-colors duration-500">Impact</a>
+        <a href="#impact"  class="px-3 py-1.5 rounded-full hover:bg-ink-950/5 transition-colors duration-500">Impact</a>
         <a href="#stories" class="px-3 py-1.5 rounded-full hover:bg-ink-950/5 transition-colors duration-500">Stories</a>
-        <a href="#faq" class="px-3 py-1.5 rounded-full hover:bg-ink-950/5 transition-colors duration-500">FAQ</a>
+        <a href="#faq"     class="px-3 py-1.5 rounded-full hover:bg-ink-950/5 transition-colors duration-500">FAQ</a>
       </nav>
       <div class="flex items-center gap-1.5">
         <a href="#emergency" class="hidden md:inline-flex items-center gap-2 px-3 py-1.5 mono text-[10px] tracking-widest text-ink-700 rounded-full">
@@ -404,29 +101,26 @@
 <!-- ============== MOBILE MENU ============== -->
 <div id="menu" class="menu-overlay fixed inset-0 z-30 bg-cream-50/95 backdrop-blur-3xl opacity-0 pointer-events-none">
   <div class="h-full flex flex-col justify-center px-8 max-w-[1400px] mx-auto">
-    <a href="#stock" class="menu-link serif text-5xl py-3 hover:text-crimson-500 transition-colors duration-500">Reserves</a>
+    <a href="#stock"   class="menu-link serif text-5xl py-3 hover:text-crimson-500 transition-colors duration-500">Reserves</a>
     <a href="#process" class="menu-link serif text-5xl py-3 hover:text-crimson-500 transition-colors duration-500">Process</a>
     <a href="#mission" class="menu-link serif text-5xl py-3 hover:text-crimson-500 transition-colors duration-500">Mission</a>
-    <a href="#impact" class="menu-link serif text-5xl py-3 hover:text-crimson-500 transition-colors duration-500">Impact</a>
+    <a href="#impact"  class="menu-link serif text-5xl py-3 hover:text-crimson-500 transition-colors duration-500">Impact</a>
     <a href="#stories" class="menu-link serif text-5xl py-3 hover:text-crimson-500 transition-colors duration-500">Stories</a>
-    <a href="#faq" class="menu-link serif text-5xl py-3 hover:text-crimson-500 transition-colors duration-500">FAQ</a>
+    <a href="#faq"     class="menu-link serif text-5xl py-3 hover:text-crimson-500 transition-colors duration-500">FAQ</a>
     <a href="#contact" class="menu-link serif text-5xl py-3 hover:text-crimson-500 transition-colors duration-500">Contact</a>
   </div>
 </div>
 
 <!-- ============== HERO ============== -->
 <section id="top" class="relative pt-36 pb-32 lg:pt-44 lg:pb-40 overflow-hidden">
-  <!-- Editorial photo backdrop -->
   <div class="bg-photo">
     <img src="image/Hope.jpg" alt="" fetchpriority="high" decoding="async"/>
   </div>
-  <!-- Soft mesh background -->
   <div class="absolute inset-0 pointer-events-none z-[1]">
     <div class="absolute -top-32 -right-32 w-[700px] h-[700px] rounded-full opacity-50" style="background: radial-gradient(circle, rgba(208,40,48,0.22), transparent 60%);"></div>
     <div class="absolute -bottom-32 -left-32 w-[600px] h-[600px] rounded-full opacity-40" style="background: radial-gradient(circle, rgba(43,168,160,0.18), transparent 60%);"></div>
   </div>
 
-  <!-- Top bulletin -->
   <div class="absolute top-24 inset-x-0 px-6 lg:px-12 max-w-[1500px] mx-auto z-10 hidden md:flex items-center gap-6 mono text-[10px] text-sand-500 tracking-widest">
     <span class="flex items-center gap-2"><span class="pulse-dot"></span> NETWORK ONLINE</span>
     <span class="opacity-30">/</span>
@@ -437,20 +131,16 @@
   </div>
 
   <div class="max-w-[1500px] mx-auto px-6 lg:px-12 grid grid-cols-12 gap-8 relative z-10">
-
-    <!-- Hero left -->
     <div class="col-span-12 lg:col-span-8 reveal-l">
       <div class="eyebrow eyebrow-crimson mb-10">
         <span class="w-1.5 h-1.5 rounded-full bg-crimson-500"></span>
         Bulletin · Vol. 04 · Issue 18
       </div>
-
       <h1 class="serif font-light text-ink-950 text-[64px] sm:text-[96px] lg:text-[148px] leading-[0.86] tracking-[-0.04em]">
         Every drop,<br/>
         <span class="serif-italic text-crimson-500" id="heroPhrase">a lifeline</span><br/>
         <span class="text-ink-900">for someone.</span>
       </h1>
-
       <div class="mt-12 grid grid-cols-12 gap-8 items-end">
         <p class="col-span-12 md:col-span-7 text-ink-700 text-[17px] leading-[1.55] max-w-xl">
           Nutech Blood Bank mobilises donors, hospitals and crisis responders into one resilient supply chain — keeping safe, screened blood within reach of every patient, every postcode, every hour.
@@ -460,24 +150,17 @@
           <div class="mt-1">VOLUNTEER · INDEPENDENT</div>
         </div>
       </div>
-
       <div class="mt-12 flex flex-wrap items-center gap-3">
         <a href="#donate" class="pill pill-crimson">
           <span>Donate Blood</span>
-          <span class="pill-knob">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </span>
+          <span class="pill-knob"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </a>
         <a href="#emergency" class="pill pill-ghost">
           <span>Request Blood</span>
-          <span class="pill-knob">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-          </span>
+          <span class="pill-knob"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12h14M13 5l7 7-7 7"/></svg></span>
         </a>
         <a href="#stock" class="ulink ml-3 mono text-[11px] tracking-widest text-sand-500 hover:text-ink-950 transition-colors duration-500">↓ LIVE RESERVES</a>
       </div>
-
-      <!-- Trust strip -->
       <div class="mt-16 pt-8 hairline-t flex items-center gap-6 flex-wrap">
         <div class="flex -space-x-3">
           <div class="w-11 h-11 rounded-full bg-crimson-500 border-[3px] border-cream-50 flex items-center justify-center text-cream-50 font-medium text-xs">SK</div>
@@ -492,9 +175,7 @@
       </div>
     </div>
 
-    <!-- Hero right — reserve card (Cascade) -->
     <aside class="col-span-12 lg:col-span-4 reveal-r relative space-y-4">
-      <!-- Hero portrait -->
       <div class="hero-portrait h-[280px] lg:h-[320px] cascade-1">
         <img src="image/Couple-Donation.jpg" alt="A donor giving blood" loading="lazy" decoding="async"/>
         <div class="absolute left-5 bottom-5 z-[2] text-cream-50">
@@ -502,7 +183,6 @@
           <div class="serif-italic text-[22px] leading-tight mt-1">"It takes ten minutes.<br/>It lasts a lifetime."</div>
         </div>
       </div>
-      <!-- Front card -->
       <div class="bezel relative cascade-2">
         <div class="bezel-inner p-7">
           <div class="flex items-center justify-between">
@@ -594,9 +274,9 @@
     <div class="mt-12 reveal flex flex-wrap items-center gap-6 mono text-[10px] tracking-widest text-sand-500 hairline-b pb-5">
       <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-crimson-500"></span> CRITICAL &lt; 25%</div>
       <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span> LOW 25–50%</div>
-      <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-sage-500"></span> STABLE &gt; 50%</div>
-      <div class="ml-auto hidden md:flex items-center gap-2 text-sand-500" aria-label="Reserve indicator">
-        <svg width="14" height="18" viewBox="0 0 24 30" fill="none" aria-hidden="true">
+      <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full" style="background:#6B8E76"></span> STABLE &gt; 50%</div>
+      <div class="ml-auto hidden md:flex items-center gap-2 text-sand-500">
+        <svg width="14" height="18" viewBox="0 0 24 30" fill="none">
           <path d="M12 2 C12 2, 3 14, 3 20 a9 9 0 0 0 18 0 C21 14, 12 2, 12 2 Z"
                 fill="rgba(208,40,48,0.15)" stroke="#A41E26" stroke-width="1.4"/>
           <ellipse cx="9" cy="16" rx="1.4" ry="3" fill="#fff" opacity="0.5"/>
@@ -607,7 +287,6 @@
 
     <div id="dropsGrid" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-x-4 gap-y-12 mt-14 stagger reveal"></div>
 
-    <!-- Stat strip — bento -->
     <div class="mt-20 grid grid-cols-12 gap-4 reveal">
       <div class="col-span-12 md:col-span-6 lg:col-span-4 bezel">
         <div class="bezel-inner p-7">
@@ -643,7 +322,6 @@
       </div>
     </div>
 
-    <!-- ============== OPERATIONS GALLERY (storytelling row) ============== -->
     <div class="mt-20 grid grid-cols-12 gap-4 reveal stagger">
       <div class="col-span-12 md:col-span-4 photo-frame h-[280px] bezel-inner">
         <img src="image/sample-with-hand.jpg" alt="Holding a sealed blood unit" loading="lazy" decoding="async"/>
@@ -670,12 +348,11 @@
   </div>
 </section>
 
-<!-- ============== PROCESS — DARK SECTION ============== -->
+<!-- ============== PROCESS ============== -->
 <section id="process" class="bg-ink-950 text-cream-50 py-28 lg:py-40 relative overflow-hidden">
   <div class="absolute inset-0 pointer-events-none opacity-30">
     <div class="absolute top-0 right-0 w-[600px] h-[600px] rounded-full" style="background: radial-gradient(circle, rgba(164,30,38,0.4), transparent 60%);"></div>
   </div>
-
   <div class="max-w-[1500px] mx-auto px-6 lg:px-12 relative">
     <div class="grid grid-cols-12 gap-10 items-end mb-20 reveal">
       <div class="col-span-12 lg:col-span-7">
@@ -688,84 +365,71 @@
       </div>
       <div class="col-span-12 lg:col-span-5">
         <p class="text-cream-200 text-[16px] leading-[1.6] max-w-md">
-          Every unit travels through a verified chain of custody — from the donor's arm to a hospital ward — in less than thirty-six hours. Here's how it works.
+          Every unit travels through a verified chain of custody — from the donor's arm to a hospital ward — in less than thirty-six hours.
         </p>
       </div>
     </div>
-
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 stagger reveal">
-      <!-- Step 1 -->
-      <div class="bezel-dark group">
-        <div class="bezel-dark-inner p-0 overflow-hidden">
-          <div class="relative h-40 overflow-hidden" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
-            <img src="image/Sample.jpg" alt="" class="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity duration-700"/>
-            <div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(14,11,8,0.1) 0%, rgba(14,11,8,0.85) 100%);"></div>
-            <span class="absolute top-5 left-6 serif font-light text-cream-50/80 text-[56px] leading-none">01</span>
-            <div class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-crimson-500 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FDFBF7" stroke-width="1.6"><path d="M12 2v6M9 5h6"/><circle cx="12" cy="14" r="6"/></svg>
-            </div>
+      <div class="bezel-dark group"><div class="bezel-dark-inner p-0 overflow-hidden">
+        <div class="relative h-40 overflow-hidden" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
+          <img src="image/Sample.jpg" alt="" class="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity duration-700"/>
+          <div class="absolute inset-0" style="background:linear-gradient(180deg,rgba(14,11,8,0.1) 0%,rgba(14,11,8,0.85) 100%);"></div>
+          <span class="absolute top-5 left-6 serif font-light text-cream-50/80 text-[56px] leading-none">01</span>
+          <div class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-crimson-500 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FDFBF7" stroke-width="1.6"><path d="M12 2v6M9 5h6"/><circle cx="12" cy="14" r="6"/></svg>
           </div>
+        </div>
         <div class="p-7 pt-5">
           <h3 class="serif font-normal text-cream-50 text-[28px] leading-tight">Register & Screen</h3>
           <p class="text-cream-200 text-[13px] mt-3 leading-relaxed">A 12-minute health questionnaire and rapid haemoglobin test confirm donor eligibility on the spot.</p>
           <div class="mono text-[10px] text-sand-400 mt-6 tracking-widest">~12 MIN</div>
         </div>
-        </div>
-      </div>
-      <!-- Step 2 -->
-      <div class="bezel-dark group">
-        <div class="bezel-dark-inner p-0 overflow-hidden">
-          <div class="relative h-40 overflow-hidden" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
-            <img src="image/Sample22.jpg" alt="" class="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity duration-700"/>
-            <div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(14,11,8,0.1) 0%, rgba(14,11,8,0.85) 100%);"></div>
-            <span class="absolute top-5 left-6 serif font-light text-cream-50/80 text-[56px] leading-none">02</span>
-            <div class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-crimson-500 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FDFBF7" stroke-width="1.6"><path d="M7 2v6c0 4 5 4 5 8s-5 4-5 8M17 2v6c0 4-5 4-5 8s5 4 5 8"/></svg>
-            </div>
-          </div>
-          <div class="p-7 pt-5">
-            <h3 class="serif font-normal text-cream-50 text-[28px] leading-tight">Collect</h3>
-            <p class="text-cream-200 text-[13px] mt-3 leading-relaxed">Sterile single-use kits draw 450ml of whole blood while you rest. Refreshments and recovery follow.</p>
-            <div class="mono text-[10px] text-sand-400 mt-6 tracking-widest">~10 MIN</div>
+      </div></div>
+      <div class="bezel-dark group"><div class="bezel-dark-inner p-0 overflow-hidden">
+        <div class="relative h-40 overflow-hidden" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
+          <img src="image/Sample22.jpg" alt="" class="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity duration-700"/>
+          <div class="absolute inset-0" style="background:linear-gradient(180deg,rgba(14,11,8,0.1) 0%,rgba(14,11,8,0.85) 100%);"></div>
+          <span class="absolute top-5 left-6 serif font-light text-cream-50/80 text-[56px] leading-none">02</span>
+          <div class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-crimson-500 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FDFBF7" stroke-width="1.6"><path d="M7 2v6c0 4 5 4 5 8s-5 4-5 8M17 2v6c0 4-5 4-5 8s5 4 5 8"/></svg>
           </div>
         </div>
-      </div>
-      <!-- Step 3 -->
-      <div class="bezel-dark group">
-        <div class="bezel-dark-inner p-0 overflow-hidden">
-          <div class="relative h-40 overflow-hidden" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
-            <img src="image/Sample%20(2).jpg" alt="" class="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity duration-700"/>
-            <div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(14,11,8,0.1) 0%, rgba(14,11,8,0.85) 100%);"></div>
-            <span class="absolute top-5 left-6 serif font-light text-cream-50/80 text-[56px] leading-none">03</span>
-            <div class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-crimson-500 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FDFBF7" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
-            </div>
-          </div>
-          <div class="p-7 pt-5">
-            <h3 class="serif font-normal text-cream-50 text-[28px] leading-tight">Test & Separate</h3>
-            <p class="text-cream-200 text-[13px] mt-3 leading-relaxed">Nucleic-acid tests for HIV, Hep B/C, syphilis & malaria. Whole blood split into red cells, plasma & platelets.</p>
-            <div class="mono text-[10px] text-sand-400 mt-6 tracking-widest">~6 HOURS</div>
+        <div class="p-7 pt-5">
+          <h3 class="serif font-normal text-cream-50 text-[28px] leading-tight">Collect</h3>
+          <p class="text-cream-200 text-[13px] mt-3 leading-relaxed">Sterile single-use kits draw 450ml of whole blood while you rest. Refreshments and recovery follow.</p>
+          <div class="mono text-[10px] text-sand-400 mt-6 tracking-widest">~10 MIN</div>
+        </div>
+      </div></div>
+      <div class="bezel-dark group"><div class="bezel-dark-inner p-0 overflow-hidden">
+        <div class="relative h-40 overflow-hidden" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
+          <img src="image/Sample%20(2).jpg" alt="" class="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity duration-700"/>
+          <div class="absolute inset-0" style="background:linear-gradient(180deg,rgba(14,11,8,0.1) 0%,rgba(14,11,8,0.85) 100%);"></div>
+          <span class="absolute top-5 left-6 serif font-light text-cream-50/80 text-[56px] leading-none">03</span>
+          <div class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-crimson-500 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FDFBF7" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
           </div>
         </div>
-      </div>
-      <!-- Step 4 -->
-      <div class="bezel-dark group">
-        <div class="bezel-dark-inner p-0 overflow-hidden">
-          <div class="relative h-40 overflow-hidden" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
-            <img src="image/Group-dOCTOR.jpg" alt="" class="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity duration-700" loading="lazy" decoding="async"/>
-            <div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(14,11,8,0.1) 0%, rgba(14,11,8,0.85) 100%);"></div>
-            <span class="absolute top-5 left-6 serif font-light text-cream-50/80 text-[56px] leading-none">04</span>
-            <div class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-crimson-500 flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FDFBF7" stroke-width="1.6"><path d="M3 8h13l5 5v4h-2M3 17h11M16 17a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM7 17a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
-            </div>
-          </div>
-          <div class="p-7 pt-5">
-            <h3 class="serif font-normal text-cream-50 text-[28px] leading-tight">Dispatch</h3>
-            <p class="text-cream-200 text-[13px] mt-3 leading-relaxed">Validated 4°C transport delivers each unit to one of 312 partner hospitals — temperature logged end-to-end.</p>
-            <div class="mono text-[10px] text-sand-400 mt-6 tracking-widest">~28 HOURS</div>
+        <div class="p-7 pt-5">
+          <h3 class="serif font-normal text-cream-50 text-[28px] leading-tight">Test & Separate</h3>
+          <p class="text-cream-200 text-[13px] mt-3 leading-relaxed">Nucleic-acid tests for HIV, Hep B/C, syphilis & malaria. Whole blood split into red cells, plasma & platelets.</p>
+          <div class="mono text-[10px] text-sand-400 mt-6 tracking-widest">~6 HOURS</div>
+        </div>
+      </div></div>
+      <div class="bezel-dark group"><div class="bezel-dark-inner p-0 overflow-hidden">
+        <div class="relative h-40 overflow-hidden" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
+          <img src="image/Group-dOCTOR.jpg" alt="" class="w-full h-full object-cover opacity-80 group-hover:opacity-95 transition-opacity duration-700" loading="lazy" decoding="async"/>
+          <div class="absolute inset-0" style="background:linear-gradient(180deg,rgba(14,11,8,0.1) 0%,rgba(14,11,8,0.85) 100%);"></div>
+          <span class="absolute top-5 left-6 serif font-light text-cream-50/80 text-[56px] leading-none">04</span>
+          <div class="absolute bottom-4 right-4 w-10 h-10 rounded-full bg-crimson-500 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FDFBF7" stroke-width="1.6"><path d="M3 8h13l5 5v4h-2M3 17h11M16 17a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM7 17a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/></svg>
           </div>
         </div>
-      </div>
+        <div class="p-7 pt-5">
+          <h3 class="serif font-normal text-cream-50 text-[28px] leading-tight">Dispatch</h3>
+          <p class="text-cream-200 text-[13px] mt-3 leading-relaxed">Validated 4°C transport delivers each unit to one of 312 partner hospitals — temperature logged end-to-end.</p>
+          <div class="mono text-[10px] text-sand-400 mt-6 tracking-widest">~28 HOURS</div>
+        </div>
+      </div></div>
     </div>
   </div>
 </section>
@@ -798,8 +462,6 @@
           <a href="#" class="ulink mono text-[11px] tracking-widest text-ink-700">READ OUR CHARTER →</a>
         </div>
       </div>
-
-      <!-- Bento -->
       <div class="col-span-12 lg:col-span-6 reveal-r">
         <div class="grid grid-cols-12 gap-3 stagger">
           <div class="col-span-12 md:col-span-6 bezel"><div class="bezel-inner p-7 h-full">
@@ -828,7 +490,7 @@
   </div>
 </section>
 
-<!-- ============== IMPACT — DARK NUMBERS ============== -->
+<!-- ============== IMPACT ============== -->
 <section id="impact" class="bg-ink-950 text-cream-50 py-28 lg:py-40 relative">
   <div class="max-w-[1500px] mx-auto px-6 lg:px-12">
     <div class="grid grid-cols-12 gap-10 items-end reveal">
@@ -844,63 +506,50 @@
         AUDITED · INDEPENDENT<br/>UPDATED QUARTERLY
       </div>
     </div>
-
     <div class="mt-16 grid grid-cols-12 gap-4 reveal stagger">
-      <div class="col-span-12 md:col-span-6 lg:col-span-3 bezel-dark">
-        <div class="bezel-dark-inner p-8 h-full">
-          <div class="flex items-center justify-between">
-            <span class="mono text-[10px] text-sand-400 tracking-widest">01</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8323A" stroke-width="1.4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          </div>
-          <div class="counter serif font-light text-cream-50 text-[72px] mt-10 leading-none tracking-[-0.04em]" data-counter="412380" data-suffix="">0</div>
-          <div class="text-cream-200 text-[12px] mt-4 mono tracking-widest">ACTIVE DONORS</div>
-          <div class="mt-6 h-px bg-gradient-to-r from-crimson-400/40 to-transparent"></div>
-          <div class="text-sand-400 text-[12px] mt-4 leading-relaxed">Volunteers across 47 districts who have donated in the last 12 months.</div>
+      <div class="col-span-12 md:col-span-6 lg:col-span-3 bezel-dark"><div class="bezel-dark-inner p-8 h-full">
+        <div class="flex items-center justify-between">
+          <span class="mono text-[10px] text-sand-400 tracking-widest">01</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8323A" stroke-width="1.4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
         </div>
-      </div>
-      <div class="col-span-12 md:col-span-6 lg:col-span-3 bezel-dark">
-        <div class="bezel-dark-inner p-8 h-full">
-          <div class="flex items-center justify-between">
-            <span class="mono text-[10px] text-sand-400 tracking-widest">02</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8323A" stroke-width="1.4"><path d="M12 2s7 8 7 13a7 7 0 0 1-14 0c0-5 7-13 7-13Z"/></svg>
-          </div>
-          <div class="counter serif font-light text-cream-50 text-[72px] mt-10 leading-none tracking-[-0.04em]" data-counter="1820000" data-suffix="L">0</div>
-          <div class="text-cream-200 text-[12px] mt-4 mono tracking-widest">LITRES COLLECTED</div>
-          <div class="mt-6 h-px bg-gradient-to-r from-crimson-400/40 to-transparent"></div>
-          <div class="text-sand-400 text-[12px] mt-4 leading-relaxed">Whole blood, plasma, platelets and red-cell concentrate combined.</div>
+        <div class="counter serif font-light text-cream-50 text-[72px] mt-10 leading-none tracking-[-0.04em]" data-counter="412380" data-suffix="">0</div>
+        <div class="text-cream-200 text-[12px] mt-4 mono tracking-widest">ACTIVE DONORS</div>
+        <div class="mt-6 h-px bg-gradient-to-r from-crimson-400/40 to-transparent"></div>
+        <div class="text-sand-400 text-[12px] mt-4 leading-relaxed">Volunteers across 47 districts who have donated in the last 12 months.</div>
+      </div></div>
+      <div class="col-span-12 md:col-span-6 lg:col-span-3 bezel-dark"><div class="bezel-dark-inner p-8 h-full">
+        <div class="flex items-center justify-between">
+          <span class="mono text-[10px] text-sand-400 tracking-widest">02</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8323A" stroke-width="1.4"><path d="M12 2s7 8 7 13a7 7 0 0 1-14 0c0-5 7-13 7-13Z"/></svg>
         </div>
-      </div>
-      <div class="col-span-12 md:col-span-6 lg:col-span-3 bezel-dark">
-        <div class="bezel-dark-inner p-8 h-full">
-          <div class="flex items-center justify-between">
-            <span class="mono text-[10px] text-sand-400 tracking-widest">03</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8323A" stroke-width="1.4"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-          </div>
-          <div class="counter serif font-light text-cream-50 text-[72px] mt-10 leading-none tracking-[-0.04em]" data-counter="9460" data-suffix="">0</div>
-          <div class="text-cream-200 text-[12px] mt-4 mono tracking-widest">DRIVES HOSTED</div>
-          <div class="mt-6 h-px bg-gradient-to-r from-crimson-400/40 to-transparent"></div>
-          <div class="text-sand-400 text-[12px] mt-4 leading-relaxed">Mobile camps, university drives and corporate partner programmes.</div>
+        <div class="counter serif font-light text-cream-50 text-[72px] mt-10 leading-none tracking-[-0.04em]" data-counter="1820000" data-suffix="L">0</div>
+        <div class="text-cream-200 text-[12px] mt-4 mono tracking-widest">LITRES COLLECTED</div>
+        <div class="mt-6 h-px bg-gradient-to-r from-crimson-400/40 to-transparent"></div>
+        <div class="text-sand-400 text-[12px] mt-4 leading-relaxed">Whole blood, plasma, platelets and red-cell concentrate combined.</div>
+      </div></div>
+      <div class="col-span-12 md:col-span-6 lg:col-span-3 bezel-dark"><div class="bezel-dark-inner p-8 h-full">
+        <div class="flex items-center justify-between">
+          <span class="mono text-[10px] text-sand-400 tracking-widest">03</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8323A" stroke-width="1.4"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
         </div>
-      </div>
-      <div class="col-span-12 md:col-span-6 lg:col-span-3 bezel-dark">
-        <div class="bezel-dark-inner p-8 h-full bg-gradient-to-br from-[#15110D] to-[#1f0d0f]">
-          <div class="flex items-center justify-between">
-            <span class="mono text-[10px] text-sand-400 tracking-widest">04</span>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8323A" stroke-width="1.4"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg>
-          </div>
-          <div class="counter serif font-light text-crimson-400 text-[72px] mt-10 leading-none tracking-[-0.04em]" data-counter="1240000" data-suffix="+">0</div>
-          <div class="text-cream-200 text-[12px] mt-4 mono tracking-widest">LIVES SAVED</div>
-          <div class="mt-6 h-px bg-gradient-to-r from-crimson-400/40 to-transparent"></div>
-          <div class="text-sand-400 text-[12px] mt-4 leading-relaxed">Patients reached through our hospital partners since inception.</div>
+        <div class="counter serif font-light text-cream-50 text-[72px] mt-10 leading-none tracking-[-0.04em]" data-counter="9460" data-suffix="">0</div>
+        <div class="text-cream-200 text-[12px] mt-4 mono tracking-widest">DRIVES HOSTED</div>
+        <div class="mt-6 h-px bg-gradient-to-r from-crimson-400/40 to-transparent"></div>
+        <div class="text-sand-400 text-[12px] mt-4 leading-relaxed">Mobile camps, university drives and corporate partner programmes.</div>
+      </div></div>
+      <div class="col-span-12 md:col-span-6 lg:col-span-3 bezel-dark"><div class="bezel-dark-inner p-8 h-full bg-gradient-to-br from-[#15110D] to-[#1f0d0f]">
+        <div class="flex items-center justify-between">
+          <span class="mono text-[10px] text-sand-400 tracking-widest">04</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8323A" stroke-width="1.4"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg>
         </div>
-      </div>
+        <div class="counter serif font-light text-crimson-400 text-[72px] mt-10 leading-none tracking-[-0.04em]" data-counter="1240000" data-suffix="+">0</div>
+        <div class="text-cream-200 text-[12px] mt-4 mono tracking-widest">LIVES SAVED</div>
+        <div class="mt-6 h-px bg-gradient-to-r from-crimson-400/40 to-transparent"></div>
+        <div class="text-sand-400 text-[12px] mt-4 leading-relaxed">Patients reached through our hospital partners since inception.</div>
+      </div></div>
     </div>
-
-    <!-- Pull quote -->
     <div class="mt-24 grid grid-cols-12 gap-8 reveal">
-      <div class="col-span-12 lg:col-span-2 mono text-[10px] text-sand-400 tracking-widest">
-        FIELD<br/>NOTE 014
-      </div>
+      <div class="col-span-12 lg:col-span-2 mono text-[10px] text-sand-400 tracking-widest">FIELD<br/>NOTE 014</div>
       <div class="col-span-12 lg:col-span-10">
         <p class="serif font-light text-cream-50 text-[36px] lg:text-[64px] leading-[1.05] tracking-[-0.025em]">
           <span class="serif-italic text-crimson-400">"</span>The reserve only holds because thousands of strangers keep showing up. Our work is to make sure none of that effort is wasted between the needle and the patient.<span class="serif-italic text-crimson-400">"</span>
@@ -928,58 +577,49 @@
       </div>
       <a href="#" class="ulink mono text-[11px] tracking-widest text-ink-700 lg:text-right col-span-12 lg:col-span-4">ALL STORIES →</a>
     </div>
-
     <div class="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-5 stagger reveal">
-      <article class="bezel">
-        <div class="bezel-inner overflow-hidden">
-          <div class="h-64 overflow-hidden bg-cream-200" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
-            <div class="w-full h-full transition-transform duration-1000" style="background:url('image/Couple-Donation.jpg') center/cover; transition-timing-function: var(--ease);"></div>
-          </div>
-          <div class="p-7">
-            <div class="mono text-[10px] text-crimson-500 tracking-widest">DONOR · 47TH PINT</div>
-            <h3 class="serif font-normal text-ink-950 text-[26px] mt-3 leading-tight">"I started at university. I never stopped."</h3>
-            <p class="text-ink-700 text-[14px] mt-4 leading-relaxed">Sara Khan has donated every four months since 2008 — through medical school, marriage, motherhood and a global pandemic.</p>
-            <div class="mt-6 flex items-center gap-3 hairline-t pt-5">
-              <div class="w-9 h-9 rounded-full bg-crimson-500 flex items-center justify-center text-cream-50 font-medium text-xs">SK</div>
-              <div class="text-[12px] text-ink-700"><span class="serif-italic text-ink-950">Sara Khan</span> · Karachi</div>
-            </div>
+      <article class="bezel"><div class="bezel-inner overflow-hidden">
+        <div class="h-64 overflow-hidden bg-cream-200" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
+          <div class="w-full h-full transition-transform duration-1000" style="background:url('image/Couple-Donation.jpg') center/cover; transition-timing-function: var(--ease);"></div>
+        </div>
+        <div class="p-7">
+          <div class="mono text-[10px] text-crimson-500 tracking-widest">DONOR · 47TH PINT</div>
+          <h3 class="serif font-normal text-ink-950 text-[26px] mt-3 leading-tight">"I started at university. I never stopped."</h3>
+          <p class="text-ink-700 text-[14px] mt-4 leading-relaxed">Sara Khan has donated every four months since 2008 — through medical school, marriage, motherhood and a global pandemic.</p>
+          <div class="mt-6 flex items-center gap-3 hairline-t pt-5">
+            <div class="w-9 h-9 rounded-full bg-crimson-500 flex items-center justify-center text-cream-50 font-medium text-xs">SK</div>
+            <div class="text-[12px] text-ink-700"><span class="serif-italic text-ink-950">Sara Khan</span> · Karachi</div>
           </div>
         </div>
-      </article>
-
-      <article class="bezel">
-        <div class="bezel-inner overflow-hidden">
-          <div class="h-64 overflow-hidden bg-cream-200" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
-            <div class="w-full h-full" style="background:url('image/Chid-together.jpg') center/cover"></div>
-          </div>
-          <div class="p-7">
-            <div class="mono text-[10px] text-crimson-500 tracking-widest">RECIPIENT · THALASSAEMIA</div>
-            <h3 class="serif font-normal text-ink-950 text-[26px] mt-3 leading-tight">"Three transfusions a month, for life."</h3>
-            <p class="text-ink-700 text-[14px] mt-4 leading-relaxed">Eight-year-old Ayaan depends on regular transfusions to live a full childhood. Every donor who shows up is part of his family.</p>
-            <div class="mt-6 flex items-center gap-3 hairline-t pt-5">
-              <div class="w-9 h-9 rounded-full bg-ink-900 flex items-center justify-center text-cream-50 font-medium text-xs">FR</div>
-              <div class="text-[12px] text-ink-700"><span class="serif-italic text-ink-950">Faisal Raza</span> · Lahore</div>
-            </div>
+      </div></article>
+      <article class="bezel"><div class="bezel-inner overflow-hidden">
+        <div class="h-64 overflow-hidden bg-cream-200" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
+          <div class="w-full h-full" style="background:url('image/Chid-together.jpg') center/cover"></div>
+        </div>
+        <div class="p-7">
+          <div class="mono text-[10px] text-crimson-500 tracking-widest">RECIPIENT · THALASSAEMIA</div>
+          <h3 class="serif font-normal text-ink-950 text-[26px] mt-3 leading-tight">"Three transfusions a month, for life."</h3>
+          <p class="text-ink-700 text-[14px] mt-4 leading-relaxed">Eight-year-old Ayaan depends on regular transfusions to live a full childhood. Every donor who shows up is part of his family.</p>
+          <div class="mt-6 flex items-center gap-3 hairline-t pt-5">
+            <div class="w-9 h-9 rounded-full bg-ink-900 flex items-center justify-center text-cream-50 font-medium text-xs">FR</div>
+            <div class="text-[12px] text-ink-700"><span class="serif-italic text-ink-950">Faisal Raza</span> · Lahore</div>
           </div>
         </div>
-      </article>
-
-      <article class="bezel">
-        <div class="bezel-inner overflow-hidden">
-          <div class="h-64 overflow-hidden bg-cream-200" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
-            <div class="w-full h-full" style="background:url('image/pexels-pavel-danilyuk-8442029.jpg') center/cover"></div>
-          </div>
-          <div class="p-7">
-            <div class="mono text-[10px] text-crimson-500 tracking-widest">RESPONDER · FIELD UNIT</div>
-            <h3 class="serif font-normal text-ink-950 text-[26px] mt-3 leading-tight">"The first hour is everything."</h3>
-            <p class="text-ink-700 text-[14px] mt-4 leading-relaxed">Field paramedic Asma describes the night the floods hit Sindh — and how a pre-positioned cooler of O− saved seventeen lives.</p>
-            <div class="mt-6 flex items-center gap-3 hairline-t pt-5">
-              <div class="w-9 h-9 rounded-full bg-crimson-700 flex items-center justify-center text-cream-50 font-medium text-xs">AM</div>
-              <div class="text-[12px] text-ink-700"><span class="serif-italic text-ink-950">Asma Malik</span> · Sukkur</div>
-            </div>
+      </div></article>
+      <article class="bezel"><div class="bezel-inner overflow-hidden">
+        <div class="h-64 overflow-hidden bg-cream-200" style="border-radius: calc(2rem - 0.375rem) calc(2rem - 0.375rem) 0 0;">
+          <div class="w-full h-full" style="background:url('image/pexels-pavel-danilyuk-8442029.jpg') center/cover"></div>
+        </div>
+        <div class="p-7">
+          <div class="mono text-[10px] text-crimson-500 tracking-widest">RESPONDER · FIELD UNIT</div>
+          <h3 class="serif font-normal text-ink-950 text-[26px] mt-3 leading-tight">"The first hour is everything."</h3>
+          <p class="text-ink-700 text-[14px] mt-4 leading-relaxed">Field paramedic Asma describes the night the floods hit Sindh — and how a pre-positioned cooler of O− saved seventeen lives.</p>
+          <div class="mt-6 flex items-center gap-3 hairline-t pt-5">
+            <div class="w-9 h-9 rounded-full bg-crimson-700 flex items-center justify-center text-cream-50 font-medium text-xs">AM</div>
+            <div class="text-[12px] text-ink-700"><span class="serif-italic text-ink-950">Asma Malik</span> · Sukkur</div>
           </div>
         </div>
-      </article>
+      </div></article>
     </div>
   </div>
 </section>
@@ -991,7 +631,7 @@
       <div class="eyebrow eyebrow-crimson">
         <span class="w-1.5 h-1.5 rounded-full bg-crimson-500"></span> 312 Hospital Partners · 47 Districts
       </div>
-      <span class="mono text-[10px] tracking-widest text-sand-500">VERIFIED & ACCREDITED</span>
+      <span class="mono text-[10px] tracking-widest text-sand-500">VERIFIED &amp; ACCREDITED</span>
     </div>
     <div class="mt-12 overflow-hidden relative">
       <div class="flex marquee-rev whitespace-nowrap items-center gap-16 text-ink-700 serif font-light text-[28px] opacity-70">
@@ -1025,7 +665,7 @@
   <div class="max-w-[1500px] mx-auto px-6 lg:px-12 grid grid-cols-12 gap-12">
     <div class="col-span-12 lg:col-span-5 reveal-l">
       <div class="eyebrow eyebrow-crimson mb-6">
-        <span class="w-1.5 h-1.5 rounded-full bg-crimson-500"></span> Eligibility & FAQs
+        <span class="w-1.5 h-1.5 rounded-full bg-crimson-500"></span> Eligibility &amp; FAQs
       </div>
       <h2 class="serif font-light text-ink-950 text-[52px] lg:text-[88px] leading-[0.92] tracking-[-0.035em]">
         Can I <span class="serif-italic text-crimson-500">donate today?</span>
@@ -1033,7 +673,6 @@
       <p class="text-ink-700 mt-8 max-w-md leading-[1.65] text-[16px]">
         A short list to help you check eligibility before you arrive. Final clearance is given by our medical officer at the centre.
       </p>
-
       <div class="mt-10 bezel">
         <div class="bezel-inner p-7">
           <ul class="space-y-4">
@@ -1045,7 +684,6 @@
         </div>
       </div>
     </div>
-
     <div class="col-span-12 lg:col-span-7 reveal-r">
       <div class="space-y-3">
         <details class="bezel hover:shadow-lg transition-shadow duration-700" open>
@@ -1103,9 +741,7 @@
   <div class="max-w-[1500px] mx-auto">
     <div class="bezel-dark relative overflow-hidden">
       <div class="bezel-dark-inner p-10 lg:p-16 relative" style="background: linear-gradient(135deg, rgba(107,17,24,0.92) 0%, rgba(26,22,18,0.96) 70%), url('image/Sample.jpg') center/cover;">
-        <!-- Decorative blob -->
         <div class="absolute -top-20 -right-20 w-[500px] h-[500px] rounded-full opacity-50 pointer-events-none" style="background: radial-gradient(circle, rgba(200,50,58,0.4), transparent 60%);"></div>
-
         <div class="grid grid-cols-12 gap-10 items-end relative">
           <div class="col-span-12 lg:col-span-8 reveal-l">
             <div class="eyebrow eyebrow-d mb-6">
@@ -1138,8 +774,6 @@
 <!-- ============== FOOTER ============== -->
 <footer id="contact" class="bg-ink-950 text-cream-200 pt-24 pb-10">
   <div class="max-w-[1500px] mx-auto px-6 lg:px-12">
-
-    <!-- Emergency block -->
     <div id="emergency" class="hairline-d-b pb-14 mb-14 grid grid-cols-12 gap-10">
       <div class="col-span-12 lg:col-span-6">
         <div class="eyebrow eyebrow-d eyebrow-crimson mb-6" style="background:rgba(164,30,38,0.15); color:#C8323A; border-color:rgba(164,30,38,0.3);">
@@ -1157,7 +791,7 @@
         </div></div>
         <div class="bezel-dark"><div class="bezel-dark-inner p-6 h-full">
           <div class="mono text-[10px] text-sand-400 tracking-widest">FOR DONORS</div>
-          <div class="serif font-normal text-cream-50 text-[22px] mt-3">Eligibility & FAQs</div>
+          <div class="serif font-normal text-cream-50 text-[22px] mt-3">Eligibility &amp; FAQs</div>
           <p class="text-sand-400 text-[13px] mt-3 leading-relaxed">Pre-screening checklist, recovery guidance and reminders for safe four-month donation intervals.</p>
           <a href="#" class="ulink mono text-[11px] tracking-widest text-crimson-400 mt-5 inline-block">READ GUIDE →</a>
         </div></div>
@@ -1190,7 +824,6 @@
           </a>
         </div>
       </div>
-
       <div class="col-span-6 lg:col-span-2">
         <div class="eyebrow eyebrow-d">Programmes</div>
         <ul class="mt-6 space-y-3 text-[14px]">
@@ -1200,7 +833,6 @@
           <li><a href="#" class="ulink hover:text-cream-50 transition-colors">Disaster Response</a></li>
         </ul>
       </div>
-
       <div class="col-span-6 lg:col-span-2">
         <div class="eyebrow eyebrow-d">Organisation</div>
         <ul class="mt-6 space-y-3 text-[14px]">
@@ -1210,7 +842,6 @@
           <li><a href="#" class="ulink hover:text-cream-50 transition-colors">Careers</a></li>
         </ul>
       </div>
-
       <div class="col-span-12 lg:col-span-4">
         <div class="eyebrow eyebrow-d">Headquarters</div>
         <p class="mt-6 text-[14px] leading-relaxed text-cream-200 serif-italic">
@@ -1237,225 +868,6 @@
   </div>
 </footer>
 
-<!-- ============== SCRIPTS ============== -->
-<script>
-  // Intersection reveal
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
-  }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal, .reveal-l, .reveal-r, .stagger, .ecg, .word').forEach(el => io.observe(el));
-
-  // Mobile menu
-  const burgerBtn = document.getElementById('burger-btn');
-  const burger = document.getElementById('burger');
-  const menu = document.getElementById('menu');
-  let menuOpen = false;
-  function toggleMenu(force) {
-    menuOpen = force !== undefined ? force : !menuOpen;
-    burger.classList.toggle('open', menuOpen);
-    if (menuOpen) {
-      menu.classList.add('open');
-      menu.style.opacity = '1';
-      menu.style.pointerEvents = 'auto';
-      document.body.style.overflow = 'hidden';
-    } else {
-      menu.classList.remove('open');
-      menu.style.opacity = '0';
-      menu.style.pointerEvents = 'none';
-      document.body.style.overflow = '';
-    }
-  }
-  burgerBtn.addEventListener('click', () => toggleMenu());
-  document.querySelectorAll('#menu a').forEach(a => a.addEventListener('click', () => toggleMenu(false)));
-
-  // Hero phrase rotator (fluid morph)
-  const phrases = ['a lifeline', 'a heartbeat', 'a second chance', 'a promise kept'];
-  let pi = 0;
-  const heroPhrase = document.getElementById('heroPhrase');
-  setInterval(() => {
-    pi = (pi + 1) % phrases.length;
-    heroPhrase.style.transition = 'opacity .5s var(--ease), transform .6s var(--ease), filter .5s var(--ease)';
-    heroPhrase.style.opacity = '0';
-    heroPhrase.style.transform = 'translateY(12px)';
-    heroPhrase.style.filter = 'blur(6px)';
-    setTimeout(() => {
-      heroPhrase.textContent = phrases[pi];
-      heroPhrase.style.opacity = '1';
-      heroPhrase.style.transform = 'translateY(0)';
-      heroPhrase.style.filter = 'blur(0)';
-    }, 420);
-  }, 3400);
-
-  // ----- Blood Stock Drops -----
-  const groups = [
-    { type: 'O−', pct: 18, units: 142,  status: 'critical' },
-    { type: 'AB−', pct: 22, units: 96,  status: 'critical' },
-    { type: 'A−', pct: 41, units: 312,  status: 'low' },
-    { type: 'B−', pct: 47, units: 388,  status: 'low' },
-    { type: 'O+', pct: 78, units: 2840, status: 'stable' },
-    { type: 'A+', pct: 71, units: 2104, status: 'stable' },
-    { type: 'B+', pct: 64, units: 1612, status: 'stable' },
-    { type: 'AB+', pct: 58, units: 921, status: 'stable' },
-  ];
-
-  const statusColor = { critical: '#A41E26', low: '#D97706', stable: '#6B8E76' };
-  const statusLabel = { critical: 'CRITICAL', low: 'LOW', stable: 'STABLE' };
-
-  const grid = document.getElementById('dropsGrid');
-  groups.forEach((g, i) => {
-    const fillH = Math.max(8, Math.round(g.pct * 1.3));
-    const color = statusColor[g.status];
-    const node = document.createElement('div');
-    node.innerHTML = `
-      <div class="relative">
-        <svg viewBox="0 0 100 140" class="w-full">
-          <defs>
-            <clipPath id="clip-${i}">
-              <path d="M50 4 C50 4, 12 56, 12 92 a38 38 0 0 0 76 0 C88 56, 50 4, 50 4 Z"/>
-            </clipPath>
-            <linearGradient id="grad-${i}" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stop-color="${color}" stop-opacity="0.95"/>
-              <stop offset="100%" stop-color="${color}" stop-opacity="0.55"/>
-            </linearGradient>
-          </defs>
-          <path d="M50 4 C50 4, 12 56, 12 92 a38 38 0 0 0 76 0 C88 56, 50 4, 50 4 Z"
-                fill="rgba(14,11,8,0.04)" stroke="rgba(14,11,8,0.18)" stroke-width="1.2"/>
-          <g clip-path="url(#clip-${i})">
-            <rect x="-20" y="${140 - fillH}" width="160" height="${fillH + 40}" fill="url(#grad-${i})"/>
-            <path class="wave" d="M-20 ${140 - fillH} q 10 -6 20 0 t 20 0 t 20 0 t 20 0 t 20 0 t 20 0 v 40 H -20 Z"
-                  fill="${color}" opacity="0.55"/>
-            <path class="wave" style="animation-duration:9s" d="M-20 ${140 - fillH + 4} q 12 -8 24 0 t 24 0 t 24 0 t 24 0 t 24 0 v 40 H -20 Z"
-                  fill="${color}" opacity="0.35"/>
-          </g>
-          <ellipse cx="38" cy="70" rx="4" ry="10" fill="white" opacity="0.35"/>
-        </svg>
-        <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <div class="serif font-light text-cream-50 text-[40px] leading-none drop-shadow tracking-[-0.04em]">${g.type}</div>
-          <div class="mono text-[10px] text-cream-50/85 mt-1 tracking-wider">${g.pct}%</div>
-        </div>
-      </div>
-      <div class="mt-4 flex items-center justify-between">
-        <div class="mono text-[10px] tracking-widest" style="color:${color}">● ${statusLabel[g.status]}</div>
-        <div class="mono text-[10px] text-sand-500">${g.units.toLocaleString()} U</div>
-      </div>
-      <div class="mt-2 h-[2px] bg-ink-950/8 overflow-hidden rounded-full">
-        <div style="width:${g.pct}%; background:${color}" class="h-full transition-all duration-1000"></div>
-      </div>
-    `;
-    grid.appendChild(node);
-  });
-
-  // Counters
-  const easeOut = t => 1 - Math.pow(1 - t, 3);
-  const formatNumber = (n, suffix) => {
-    if (suffix === 'L') {
-      if (n >= 1_000_000) return (n/1_000_000).toFixed(2).replace(/\.?0+$/,'') + 'M L';
-      if (n >= 1000) return (n/1000).toFixed(0) + 'K L';
-      return n.toLocaleString() + ' L';
-    }
-    if (suffix === '+') {
-      if (n >= 1_000_000) return (n/1_000_000).toFixed(2).replace(/\.?0+$/,'') + 'M+';
-      if (n >= 1000) return Math.round(n/1000) + 'K+';
-      return n.toLocaleString() + '+';
-    }
-    if (n >= 1_000_000) return (n/1_000_000).toFixed(2).replace(/\.?0+$/,'') + 'M';
-    if (n >= 100_000) return Math.round(n/1000) + 'K';
-    return n.toLocaleString();
-  };
-
-  const counterIO = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (!e.isIntersecting) return;
-      const el = e.target;
-      const target = parseInt(el.dataset.counter, 10);
-      const suffix = el.dataset.suffix || '';
-      const dur = 1800;
-      const start = performance.now();
-      const tick = (now) => {
-        const t = Math.min(1, (now - start) / dur);
-        const val = Math.floor(easeOut(t) * target);
-        el.textContent = formatNumber(val, suffix);
-        if (t < 1) requestAnimationFrame(tick);
-        else el.textContent = formatNumber(target, suffix);
-      };
-      requestAnimationFrame(tick);
-      counterIO.unobserve(el);
-    });
-  }, { threshold: 0.4 });
-  document.querySelectorAll('[data-counter]').forEach(el => counterIO.observe(el));
-
-  // Nav scroll compress (subtle padding shift only — transform-safe)
-  const navEl = document.getElementById('nav');
-  let lastScroll = 0;
-  const onScroll = () => {
-    const y = window.scrollY;
-    if (y > 30 && lastScroll <= 30) navEl.style.background = 'rgba(253,251,247,0.85)';
-    else if (y <= 30 && lastScroll > 30) navEl.style.background = '';
-    lastScroll = y;
-  };
-  window.addEventListener('scroll', onScroll, { passive: true });
-
-  // ── Page loader ──────────────────────────────────────────
-  (function () {
-    const loader = document.getElementById('page-loader');
-    const bar    = document.getElementById('ldr-bar');
-    const status = document.getElementById('ldr-status');
-    const fill   = document.getElementById('ldr-fill');
-    if (!loader) return;
-
-    const MIN_MS  = 450;
-    const MAX_MS  = 3500;
-    const start   = Date.now();
-    let dismissed = false;
-
-    function setProgress(p) {
-      p = Math.min(100, p);
-      bar.style.width = p + '%';
-      // Blood drop fills from bottom: y=80 (empty) → y=6 (full)
-      fill.setAttribute('y', String(Math.round(80 - (p / 100) * 74)));
-      if (p >= 100) status.textContent = 'READY';
-    }
-
-    function dismiss() {
-      if (dismissed) return;
-      dismissed = true;
-      setProgress(100);
-      const elapsed = Date.now() - start;
-      const wait = Math.max(0, MIN_MS - elapsed);
-      setTimeout(() => loader.classList.add('done'), wait + 300);
-    }
-
-    // Track only eager (above-the-fold) images — lazy images won't load until scroll
-    // and would otherwise stall the loader until MAX_MS.
-    const imgs = Array.from(document.querySelectorAll('img')).filter(
-      img => img.loading !== 'lazy' && !img.hasAttribute('data-skip-loader')
-    );
-    if (!imgs.length) { dismiss(); return; }
-
-    let settled = 0;
-    const total = imgs.length;
-
-    function onSettled() {
-      settled = Math.min(total, settled + 1);
-      setProgress(Math.round((settled / total) * 100));
-      if (settled >= total) dismiss();
-    }
-
-    imgs.forEach(img => {
-      if (img.complete) {
-        onSettled();
-      } else {
-        img.addEventListener('load',  onSettled, { once: true });
-        img.addEventListener('error', onSettled, { once: true });
-      }
-    });
-
-    // Safety valve — never block the user longer than MAX_MS
-    setTimeout(dismiss, MAX_MS);
-
-    // Kick off with a small initial pulse so the bar isn't dead still
-    requestAnimationFrame(() => setProgress(4));
-  })();
-</script>
+<script src="/js/landing.js" defer></script>
 </body>
 </html>

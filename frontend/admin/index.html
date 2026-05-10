@@ -823,14 +823,7 @@
 <script>
 if (!sessionStorage.getItem('nb_admin')) window.location.href = 'login.html';
 
-const API = (() => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const queryBase = urlParams.get('apiBase');
-  const storedBase = localStorage.getItem('NB_API_BASE');
-  const inferredBase = `${window.location.origin}/api`;
-  const base = queryBase || storedBase || inferredBase;
-  return base.replace(/\/$/, '');
-})();
+const API = `${window.location.origin}/api`;
 let bloodGroups = [], banks = [], hospitals = [], staffList = [];
 let inventoryChart = null;
 
